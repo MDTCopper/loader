@@ -37,7 +37,6 @@ public class LoadedCopperMod extends Mods.LoadedMod {
         meta.repo = mod.repo;
         meta.hidden = mod.hidden;
         meta.java = true;
-        meta.minGameVersion = String.valueOf(Vars.minJavaModGameVersion);
 
         if (!mod.id.equals("copper:core")) {
             Seq<String> dependencies = Seq.with("copper-copper-core");
@@ -67,4 +66,17 @@ public class LoadedCopperMod extends Mods.LoadedMod {
     public boolean shouldBeEnabled() {
         return true;
     }
+
+    /** Bypass game version check. It should be done via copper mod dependency check */
+    @Override
+    public boolean isOutdated() {
+        return false;
+    }
+
+    /** Bypass game version check. It should be done via copper mod dependency check */
+    @Override
+    public boolean isSupported() {
+        return true;
+    }
+
 }

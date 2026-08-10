@@ -59,10 +59,7 @@ import java.util.*;
  *
  *         "mixins": {
  *             "mindustry": "mixins/mindustry.json",
- *             "some:mod": {
- *                 "version": ">=1.0.0 && <2.0.0",
- *                 "path":    "mixins.some.json"
- *             }
+ *             "some:mod": "mixins/some.json"
  *         }
  *     }
  * }
@@ -70,39 +67,83 @@ import java.util.*;
  *
  * <h3>Field reference</h3>
  *
- * <table>
- *   <caption>Required fields</caption>
- *   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
- *   <tr><td>{@code id}</td><td>String</td><td>Mod identifier in {@code author:name} format. Must contain exactly one colon ({@code :}).<br>
- *       Allowed characters follow Java package naming rules: letters, digits, and underscores,
- *       separated by a single colon. Forbidden: spaces, dots ({@code .}), hyphens ({@code -}), commas ({@code ,}).<br>
- *       </td></tr>
- *   <tr><td>{@code name}</td><td>String</td><td>Human-readable display name.</td></tr>
- *   <tr><td>{@code author}</td><td>String</td><td>Mod author name.</td></tr>
- *   <tr><td>{@code main}</td><td>String</td><td>Fully qualified main class name. Must start with the {@code id} with colons
- *       replaced by dots (e.g., {@code "author:mod"} → must start with {@code "author.mod."}).</td></tr>
- *   <tr><td>{@code version}</td><td>String</td><td>Semantic version ({@code X.Y.Z}). See {@link SemanticVersion}.</td></tr>
- * </table>
+ * <h4>Required fields</h4>
  *
- * <table>
- *   <caption>Optional fields</caption>
- *   <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
- *   <tr><td>{@code description}</td><td>String</td><td>{@code ""}</td><td>Short description of the mod.</td></tr>
- *   <tr><td>{@code hidden}</td><td>Boolean</td><td>{@code false}</td><td>Whether this mod is hidden. Hidden mods are server-side or client-side
- *       only and cannot register new content (blocks, items, etc.).</td></tr>
- *   <tr><td>{@code repo}</td><td>String</td><td>{@code ""}</td><td>URL to the mod's repository or homepage.</td></tr>
- *   <tr><td>{@code extra}</td><td>Object</td><td>{@code {}}</td><td>Additional fields for the game's ModMeta
- *       (e.g. {@code subtitle}). Deserialized by copper.core.mod.LoadedCopperMod
- *       when bridging into the game's mod registry.</td></tr>
- *   <tr><td>{@code dependencies}</td><td>Object</td><td>—</td><td>Map of mod id → version filter (see below).</td></tr>
- *   <tr><td>{@code conflicts}</td><td>Object</td><td>—</td><td>Map of mod id → version filter. If a conflicting mod
- *       is present with a matching version, loading is rejected.</td></tr>
- *   <tr><td>{@code exports}</td><td>Array of String</td><td>—</td><td>Class visibility rules for this mod's own classes.
- *       Each entry is {@code "include <pattern>"} or {@code "exclude <pattern>"} using wildcard patterns.</td></tr>
- *   <tr><td>{@code imports}</td><td>Object</td><td>—</td><td>Map of dependency mod id → rule(s) granting extra
- *       class visibility into that dependency.</td></tr>
- *   <tr><td>{@code mixins}</td><td>Object</td><td>—</td><td>Map of target id → mixin config descriptor (see below).</td></tr>
- * </table>
+ * <h5>{@code id}</h5>
+ * <ul>
+ *   <li>Type: String</li>
+ *   <li>Mod identifier in {@code author:name} format. Must contain exactly one colon ({@code :}).
+ *       Allowed characters follow Java package naming rules: letters, digits, and underscores,
+ *       separated by a single colon. Forbidden: spaces, dots ({@code .}), hyphens ({@code -}), commas ({@code ,}).</li>
+ * </ul>
+ *
+ * <h5>{@code name}</h5>
+ * <ul><li>Type: String</li><li>Human-readable display name.</li></ul>
+ *
+ * <h5>{@code author}</h5>
+ * <ul><li>Type: String</li><li>Mod author name.</li></ul>
+ *
+ * <h5>{@code main}</h5>
+ * <ul>
+ *   <li>Type: String</li>
+ *   <li>Fully qualified main class name. Must start with the {@code id} with colons
+ *       replaced by dots (e.g., {@code "author:mod"} → must start with {@code "author.mod."}).</li>
+ * </ul>
+ *
+ * <h5>{@code version}</h5>
+ * <ul><li>Type: String</li><li>Semantic version ({@code X.Y.Z}). See {@link SemanticVersion}.</li></ul>
+ *
+ * <h4>Optional fields</h4>
+ *
+ * <h5>{@code description}</h5>
+ * <ul><li>Type: String</li><li>Default: {@code ""}</li><li>Short description of the mod.</li></ul>
+ *
+ * <h5>{@code hidden}</h5>
+ * <ul>
+ *   <li>Type: Boolean</li>
+ *   <li>Default: {@code false}</li>
+ *   <li>Whether this mod is hidden. Hidden mods are server-side or client-side only
+ *       and cannot register new content (blocks, items, etc.).</li>
+ * </ul>
+ *
+ * <h5>{@code repo}</h5>
+ * <ul><li>Type: String</li><li>Default: {@code ""}</li><li>URL to the mod's repository or homepage.</li></ul>
+ *
+ * <h5>{@code extra}</h5>
+ * <ul>
+ *   <li>Type: Object</li>
+ *   <li>Default: {@code {}}</li>
+ *   <li>Additional fields for the game's ModMeta (e.g. {@code subtitle}).
+ *       Deserialized by copper.core.mod.LoadedCopperMod when bridging into the game's mod registry.</li>
+ * </ul>
+ *
+ * <h5>{@code dependencies}</h5>
+ * <ul><li>Type: Object</li><li>Map of mod id → version filter (see below).</li></ul>
+ *
+ * <h5>{@code conflicts}</h5>
+ * <ul><li>Type: Object</li><li>Map of mod id → version filter. If a conflicting mod
+ *       is present with a matching version, loading is rejected.</li></ul>
+ *
+ * <h5>{@code exports}</h5>
+ * <ul>
+ *   <li>Type: Array of String</li>
+ *   <li>Class visibility rules for this mod's own classes, matched top to bottom.
+ *       Each entry is {@code "include <pattern>"} or {@code "exclude <pattern>"}
+ *       using wildcard patterns. Rules are checked in order: to hide internal packages, place
+ *       {@code "exclude"} before {@code "include"} (e.g. {@code exclude author.m.internal.*}
+ *       then {@code include author.m.*}). The system automatically appends
+ *       {@code "include author.modname.*"} at the end.</li>
+ * </ul>
+ *
+ * <h5>{@code imports}</h5>
+ * <ul>
+ *   <li>Type: Object</li>
+ *   <li>Map of dependency mod id → rule(s) granting extra class visibility into that dependency.
+ *       Rules are matched top to bottom, same as exports.</li>
+ * </ul>
+ *
+ * <h5>{@code mixins}</h5>
+ * <ul><li>Type: Object</li><li>Map of target id → mixin config descriptor (see below).</li></ul>
  *
  * <h3>Version filter syntax (used in {@code dependencies}, {@code conflicts}, and mixin {@code version})</h3>
  *
@@ -134,19 +175,16 @@ import java.util.*;
  *
  * <h3>Mixin descriptor formats</h3>
  *
- * <p>Each entry in {@code "mixins"} can be written in one of two forms:</p>
+ * <p>Each entry in {@code "mixins"} maps a target container id (e.g. {@code "mindustry"})
+ * to a mixin config file path inside {@code assets/copper/}. The config file itself is
+ * read by {@link copper.loader.mod.mixin.IMixinConfigReader} and uses a version-keyed
+ * format for filtering mixin entries by target version.</p>
  *
- * <table>
- *   <caption>Mixin config formats</caption>
- *   <tr><th>Format</th><th>Example</th><th>Description</th></tr>
- *   <tr><td>String shorthand</td>
- *       <td>{@code "mindustry": "mixins.my.json"}</td>
- *       <td>Mixin config file path only. Version defaults to {@code *} (always applies).</td></tr>
- *   <tr><td>Object form</td>
- *       <td>{@code "mindustry": {"version": ">=146", "path": "mixins.my.json"}}</td>
- *       <td>Full descriptor with optional {@code version} filter (default {@code *})
- *           and required {@code path} to the mixin config file inside {@code assets/copper/}.</td></tr>
- * </table>
+ * <h3>Special mod ids</h3>
+ * <p>{@code "mindustry"} refers to the game itself, and
+ * {@code "loader"} refers to the Copper loader. Both can be used in
+ * {@code "dependencies"} and {@code "conflicts"}, but only {@code "mindustry"}
+ * is a valid mixin target — you cannot apply mixins to the loader.</p>
  */
 public class MetaReaderV1 implements IMetaReader {
     public void read(Mod mod, Jval obj) {
@@ -184,12 +222,14 @@ public class MetaReaderV1 implements IMetaReader {
             mod.dependency.addAll(parseModDescriptors(meta.get("conflicts").asObject()));
 
         if (meta.containsKey("exports")) {
+            // Export rules matched top to bottom; system auto-appends "include author.modname.*" at the end
             Jval.JsonArray exports = meta.get("exports").asArray();
             for (var item : exports)
                 mod.exportRule.add(item.asString());
         }
 
         if (meta.containsKey("imports")) {
+            // Import rules matched top to bottom for each dependency mod
             Jval.JsonMap imports = meta.get("imports").asObject();
             for (var entry : imports.entrySet()) {
                 ArrayList<String> arr = new ArrayList<>();
@@ -205,24 +245,14 @@ public class MetaReaderV1 implements IMetaReader {
         }
 
         if (meta.containsKey("mixins")) {
+            // Map target container id → mixin config path; the config file is read by IMixinConfigReader
             Jval.JsonMap mixins = meta.get("mixins").asObject();
             for (var entry : mixins.entrySet()) {
                 String id = entry.getKey();
                 Jval conf = entry.getValue();
                 MixinDescriptor desc = new MixinDescriptor();
                 desc.id = id;
-                if (conf.isString()) {
-                    desc.version = new SemanticVersionFilter("*");
-                    desc.configPath = conf.asString();
-                } else if (conf.isObject()) {
-                    String ver = conf.getString("version", "*").trim();
-                    desc.configPath = conf.getString("path").trim();
-                    try {
-                        desc.version = new SemanticVersionFilter(ver);
-                    } catch (Throwable e) {
-                        desc.version = new StringVersionFilter(ver);
-                    }
-                }
+                desc.configPath = conf.asString();
                 mod.mixin.add(desc);
             }
         }

@@ -101,6 +101,7 @@ public class Mods {
         for (Mod m : mods)
             if (m instanceof MindustryMod)
                 orderedMod.add(m);
+        int mdtModCnt = orderedMod.size();
 
         Map<Mod, Integer> inDegCnt = new HashMap<>();
         Map<Mod, ArrayList<Mod>> outDeg = new HashMap<>();
@@ -135,6 +136,8 @@ public class Mods {
         };
 
         for (Mod m : mods) {
+            if (m instanceof MindustryMod)
+                continue;
             inDegCnt.put(m, m.dependency.size());
             for (var info : m.dependency) {
                 if (!info.id.equals("mindustry") && !info.id.equals("loader"))
@@ -147,11 +150,13 @@ public class Mods {
         sort.get(orderedMod, "mod dependency path");
 
         // The core mod must load first so it can register all Copper mods into Mindustry.
-        Structs.swap(orderedMod, 0, orderedMod.indexOf(mod.get("copper:core")));
+        Structs.swap(orderedMod, mdtModCnt, orderedMod.indexOf(mod.get("copper:core")));
 
         inDegCnt.clear();
         outDeg.clear();
         for (Mod m : mods) {
+            if (m instanceof MindustryMod)
+                continue;
             inDegCnt.put(m, m.mixin.size());
             for (var mixin : m.mixin) {
                 if (!mixin.id.equals("mindustry") && !mixin.id.equals("loader"))

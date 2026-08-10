@@ -1,14 +1,20 @@
 {
-  "required": true,
-  "minVersion": "0.8",
-  "package": "copper.core.patch.impl",
-  "mixins": [
-    "CMods",
-    "CPlatform",
-    "COS",
-    "CVars",
-    "CBeControl",
-    "CVersion",
-    "CNet"
-  ]
+  "version": 1,
+  "config": {
+    "required": true,
+    "minVersion": "0.8",
+    "package": "copper.core.patch.impl",
+    "mixins": {
+      "*": [
+        "CMods",
+        "CPlatform",
+        "COS",
+        "CVars",
+        "CBeControl",
+        "CVersion"
+      ],
+      "<8.0.27179 || (>= 8.1 <8.159)": "CNetBackport",
+      "(>=8.0.27179 <8.1) || >=8.159": "CNet"
+    }
+  }
 }

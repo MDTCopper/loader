@@ -48,13 +48,6 @@ public abstract class CMods {
         mods.addAll(loadedMods);
 
         loadedMods.each(this::updateDependencies);
-        for(var mod : loadedMods){
-            // Skip mods that have already been disabled/resolved.
-            if(mod.state != Mods.ModState.enabled)
-                continue;
-            if(!mod.isSupported())
-                mod.state = Mods.ModState.unsupported;
-        }
         Log.info("Loaded @ copper mods.", loadedMods.count(Mods.LoadedMod::enabled));
     }
 

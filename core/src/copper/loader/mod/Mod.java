@@ -4,6 +4,7 @@ import copper.loader.*;
 import copper.loader.container.*;
 import copper.loader.container.info.*;
 import copper.loader.mod.meta.*;
+import copper.loader.mod.mixin.*;
 import copper.loader.util.*;
 import java.io.*;
 import java.lang.reflect.*;
@@ -25,6 +26,8 @@ import java.util.*;
 public class Mod {
     /** Registered meta readers, indexed by version number minus 1. */
     private static final IMetaReader[] metaReaders = new IMetaReader[] {new MetaReaderV1()};
+    /** Registered mixin config readers, indexed by version number minus 1. */
+    private static final IMixinConfigReader[] mixinReaders = new IMixinConfigReader[] {new MixinConfigReaderV1()};
 
     /** Unique mod identifier ({@code author:name}). */
     public String id;
@@ -221,15 +224,21 @@ public class Mod {
                 Log.warn("Failed to find mixin target for " + id + " : " + mixin.id);
                 continue;
             }
-            if (!mixin.version.check(version))
-                continue;
-            Log.debug(null, "Selected mod mixin config: %s -> %s : %s", id, mixin.id, mixin.configPath);
 
             byte[] txtBytes = container.resource.get("assets/copper/" + mixin.configPath);
             if (txtBytes == null)
                 throw new RuntimeException("failed to find mixin config in copper assets of mod " + id + " : " + mixin.configPath);
-            MixinInfo info = new MixinInfo(container, new String(txtBytes, StandardCharsets.UTF_8));
-            target.mixin.add(info);
+            try {
+                Jval config = Jval.read(new String(txtBytes, StandardCharsets.UTF_8));
+                int ver = config.getInt("version", 0);
+                if (ver <= 0 || ver > mixinReaders.length)
+                    throw new RuntimeException("mixin config version is not supported: " + ver);
+                String txt = mixinReaders[ver - 1].read(version, config.get("config"));
+                MixinInfo info = new MixinInfo(container, txt);
+                target.mixin.add(info);
+            } catch (Throwable e) {
+                throw new RuntimeException("failed to read mixin config in mod " + id + " : " + mixin.configPath);
+            }
         }
     }
 }
