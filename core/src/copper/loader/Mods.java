@@ -140,7 +140,7 @@ public class Mods {
                 continue;
             inDegCnt.put(m, m.dependency.size());
             for (var info : m.dependency) {
-                if (!info.id.equals("mindustry") && !info.id.equals("loader"))
+                if (!info.id.equals("mindustry") && !info.id.equals("loader") && !info.id.startsWith("mindustry:"))
                     outDeg.computeIfAbsent(mod.get(info.id), k -> new ArrayList<>())
                             .add(m);
                 else
@@ -159,11 +159,11 @@ public class Mods {
                 continue;
             inDegCnt.put(m, m.mixin.size());
             for (var mixin : m.mixin) {
-                if (!mixin.id.equals("mindustry") && !mixin.id.equals("loader"))
+                if (!mixin.id.equals("mindustry") && !mixin.id.equals("loader") && !mixin.id.startsWith("mindustry:"))
                     outDeg.computeIfAbsent(mod.get(mixin.id), k -> new ArrayList<>())
                             .add(m);
                 else
-                    inDegCnt.put(m, m.mixin.size() - 1);
+                    inDegCnt.computeIfPresent(m, (k, v) -> v - 1);
             }
         }
         sort.get(new ArrayList<>(), "mod mixin path");

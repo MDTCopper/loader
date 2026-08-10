@@ -134,8 +134,9 @@ public class Mod {
             Class<?> main = container.loadPublicOwnClass(this.main);
             if (main == null)
                 throw new RuntimeException("main class is not found: " + this.main);
-            Method init = main.getMethod("init");
-            if (Modifier.isStatic(init.getModifiers()))
+            Method init = main.getMethod("bootstrap");
+            int modifiers = init.getModifiers();
+            if (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers))
                 init.invoke(null);
         } catch (NoSuchMethodException ignored) {
         } catch (Throwable e) {
@@ -184,8 +185,10 @@ public class Mod {
                 // The core mod is added separately in Mods.resolveMod.
                 if (!o.id.equals("copper:core")) {
                     DependencyInfo info = new DependencyInfo(o.container);
-                    for (String rule : importRule.get(o.id))
-                        info.extraImport.addRule(rule);
+                    if (importRule.containsKey(o.id)) {
+                        for (String rule : importRule.get(o.id))
+                            info.extraImport.addRule(rule);
+                    }
                     container.dependency.add(info);
                 }
             }

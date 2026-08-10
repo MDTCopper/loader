@@ -78,14 +78,9 @@ public class MindustryMod extends Mod {
         }
     }
 
+    /** No-op: Bootstrap method is only for copper mods. */
     @Override
-    public void init() {
-        try {
-            container.init();
-        } catch (Throwable e) {
-            throw new RuntimeException("failed to init mod: " + id, e);
-        }
-    }
+    public void init() {}
 
     /** No-op: Mindustry mods are loaded by the game itself. */
     @Override
