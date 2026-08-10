@@ -1,0 +1,16 @@
+
+apply plugin: "java-library"
+
+sourceSets {
+    main {
+        java.srcDirs = ["src"]
+        resources.srcDirs = ["res"]
+    }
+}
+
+dependencies {
+    compileOnly project(":core")
+    compileOnly "com.github.Anuken.Arc:arc-core:$gameVersion"
+    compileOnly "com.github.Anuken.Mindustry:core:$gameVersion"
+    annotationProcessor "com.github.MDTCopper:Mixin:$mixinVersion:processor"
+}

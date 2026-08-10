@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "copper.core.patch.impl",
+  "mixins": [
+    "CMods",
+    "CPlatform",
+    "COS",
+    "CVars",
+    "CBeControl",
+    "CVersion",
+    "CNet"
+  ]
+}

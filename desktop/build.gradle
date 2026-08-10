@@ -1,0 +1,37 @@
+
+apply plugin: "java"
+
+evaluationDependsOn(':mod')
+
+sourceSets {
+    main {
+        java.srcDirs = ["src"]
+    }
+}
+
+dependencies {
+    implementation project(":core")
+}
+
+jar {
+    dependsOn configurations.runtimeClasspath
+
+    manifest {
+        attributes 'Main-Class': 'copper.launch.JvmLauncher'
+    }
+
+    from ({
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }) {
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+        exclude 'module-info.class', '**/module-info.class'
+        exclude 'META-INF/maven/**'
+    }
+    from(project(':mod').tasks.named('jar')) {
+        rename { 'core-mod.jar' }
+        into('')
+    }
+    duplicatesStrategy = DuplicatesStrategy.WARN
+}

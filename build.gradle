@@ -1,0 +1,40 @@
+
+allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+
+    ext {
+        buildVersion = property("buildVersion")
+        asmVersion = property("asmVersion")
+        mixinVersion = property("mixinVersion")
+        // for core mod
+        gameVersion = property("gameVersion")
+    }
+}
+
+subprojects {
+    if (project.name != "desktop") {
+        apply plugin: 'java-library'
+        apply plugin: "maven-publish"
+
+        group = "com.github.MDTCopper.loader"
+        version = buildVersion
+
+        task sourcesJar(type: Jar) {
+            from sourceSets.main.allJava
+            archiveClassifier.set('sources')
+        }
+
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    from components.java
+                    artifact sourcesJar
+                }
+            }
+        }
+    }
+}

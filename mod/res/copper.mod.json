@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "copper:core",
+    "name": "Copper Core Mod",
+    "description": "The core mod of copper loader",
+    "author": "Copper",
+    "main": "copper.core.CoreMod",
+    "version": "0.0.0",
+    "repo": "MDTCopper/loader",
+    "mixins": {
+      "mindustry": "mixins/mindustry.json"
+    }
+  }
+}
