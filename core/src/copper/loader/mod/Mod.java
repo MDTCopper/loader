@@ -20,7 +20,7 @@ import java.util.*;
  * {@link #resolve()} wires dependencies, conflicts, export rules, and mixin configs
  * (called during {@link Mods#read});<br>
  * {@link #preInit()} initializes the container (classloader + mixin);<br>
- * {@link #init()} invokes the mod's static {@code init()} method;<br>
+ * {@link #init()} invokes the mod's static {@code bootstrap()} method;<br>
  * {@link #load()} instantiates the main class.</p>
  */
 public class Mod {
