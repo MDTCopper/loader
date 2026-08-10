@@ -7,6 +7,14 @@ import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * Represents a standard Mindustry mod (loaded from {@code mod.json}, {@code mod.hjson},
+ * {@code plugin.json}, or {@code plugin.hjson}).
+ *
+ * <p>The mod id is derived from its directory/jar name: {@code "mindustry:<name>"}.
+ * This class does not support Copper's full meta system — it only reads the basic
+ * Mindustry mod metadata fields.</p>
+ */
 public class MindustryMod extends Mod {
     private static final String[] metaFiles
             = {"mod.json", "mod.hjson", "plugin.json", "plugin.hjson"};
@@ -30,12 +38,12 @@ public class MindustryMod extends Mod {
             String metaJson = new String(metaContent, StandardCharsets.UTF_8);
             Jval.JsonMap meta = Jval.read(metaJson).asObject();
 
-            // necessary info
+            // Required field.
 
             name = meta.get("name").asString().trim();
             id = "mindustry:" + name;
 
-            // optional info
+            // Optional fields.
 
             if (meta.containsKey("author"))
                 author = meta.get("author").asString();
@@ -79,12 +87,16 @@ public class MindustryMod extends Mod {
         }
     }
 
+    /** No-op: Mindustry mods are loaded by the game itself. */
     @Override
     public void load() {}
 
+    /**
+     * Makes every other Mindustry mod visible to this mod.
+     * This replicates the behaviour of {@code mindustry.mod.ModClassLoader}.
+     */
     @Override
     public void resolve() {
-        // the same behaviour with mindustry.mod.ModClassLoader
         Loader.mods.eachMod(m -> {
             if (!(m instanceof MindustryMod) || m.id.equals(this.id))
                 return;

@@ -7,6 +7,14 @@ import copper.loader.util.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Manages mod discovery, topological ordering, dependency resolution,
+ * and the mod lifecycle (read → pre-init → init → load).
+ *
+ * <p>Mods are scanned from two directories (Copper-native and standard Mindustry)
+ * and sorted so that dependencies load before dependents. The Copper core mod is
+ * always placed first.</p>
+ */
 public class Mods {
     private static final String[] mindustryMetaFiles
             = {"mod.json", "mod.hjson", "plugin.json", "plugin.hjson"};
@@ -23,23 +31,42 @@ public class Mods {
         pathMap = new HashMap<>();
     }
 
+    /**
+     * Looks up a mod by its string id (e.g., {@code "copper:core"}).
+     */
     public Mod getModById(String id) {
         return mod.get(id);
     }
 
+    /**
+     * Looks up a mod by its file path on disk.
+     */
     public Mod getModByFile(File file) {
         return pathMap.get(file.getAbsolutePath());
     }
 
+    /**
+     * Iterates over all mods in load order.
+     */
     public void eachMod(Cons<Mod> cons) {
         for (Mod m : orderedMod)
             cons.get(m);
     }
 
+    /**
+     * Returns the mod list in load order.
+     */
     public List<Mod> getMods() {
         return orderedMod;
     }
 
+    /**
+     * Scans a folder for mod files and reads their metadata.
+     *
+     * @param folder      the folder to scan
+     * @param metaFiles   candidate meta file names inside each mod
+     * @param constructor factory that creates a {@link Mod} from a {@link File}
+     */
     private void readMod(File folder, String[] metaFiles, Func<File, Mod> constructor) {
         File[] files = folder.listFiles();
         if (files != null) {
@@ -63,6 +90,10 @@ public class Mods {
         }
     }
 
+    /**
+     * Topologically sorts mods by their dependency and mixin dependency graphs,
+     * reporting cycles as errors.
+     */
     private void sortMod() {
         orderedMod.clear();
 
@@ -114,7 +145,8 @@ public class Mods {
             }
         }
         sort.get(orderedMod, "mod dependency path");
-        // core mod should be loaded first to register all copper mods into mindustry
+
+        // The core mod must load first so it can register all Copper mods into Mindustry.
         Structs.swap(orderedMod, 0, orderedMod.indexOf(mod.get("copper:core")));
 
         inDegCnt.clear();
@@ -132,6 +164,10 @@ public class Mods {
         sort.get(new ArrayList<>(), "mod mixin path");
     }
 
+    /**
+     * Wires up container dependencies: every mod gets the Copper core mod,
+     * the game, and the loader as dependencies.
+     */
     private void resolveMod() {
         DependencyInfo coreInfo = new DependencyInfo(mod.get("copper:core").container);
         DependencyInfo gameInfo = new DependencyInfo(Loader.game.container);
@@ -145,6 +181,9 @@ public class Mods {
         eachMod(Mod::resolve);
     }
 
+    /**
+     * Discovers all mods, sorts them by dependency order, and resolves dependencies.
+     */
     public void read() {
         Loader.platform.extractCoreMod();
         readMod(Loader.vars.copperModFolder, copperMetaFiles, Mod::new);
@@ -165,14 +204,23 @@ public class Mods {
         }
     }
 
+    /**
+     * Calls {@link Mod#preInit()} on every mod in load order.
+     */
     public void preInit() {
         eachMod(Mod::preInit);
     }
 
+    /**
+     * Calls {@link Mod#init()} on every mod in load order.
+     */
     public void init() {
         eachMod(Mod::init);
     }
 
+    /**
+     * Calls {@link Mod#load()} on every mod in load order.
+     */
     public void load() {
         eachMod(Mod::load);
     }

@@ -2,9 +2,16 @@ package copper.loader.container.resource;
 
 import java.io.*;
 
+/**
+ * Reads resources from a directory on the filesystem.
+ */
 public class FolderResource implements IResource {
+    /** The root folder. */
     public File folder;
 
+    /**
+     * @param folder the root directory to read from
+     */
     public FolderResource(File folder) {
         this.folder = folder;
     }

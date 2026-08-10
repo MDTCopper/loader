@@ -2,6 +2,12 @@ package copper.loader.util;
 
 import copper.loader.func.*;
 
+/**
+ * Logging utility with colorized output and configurable log level.
+ *
+ * <p>Supports four log levels: {@link Level#ERROR}, {@link Level#WARN}, {@link Level#INFO}, {@link Level#DEBUG}.
+ * The backend can be swapped (e.g., to colorless mode for non-interactive terminals).</p>
+ */
 public class Log {
 
     public enum Level {
@@ -17,6 +23,7 @@ public class Log {
     private static final String RED = "\u001B[31m";
     private static final String CYAN = "\u001B[36m";
 
+    /** Sets the minimum log level. Messages below this level are suppressed. */
     public static void setLevel(Level level) {
         Log.level = level;
     }
@@ -25,16 +32,19 @@ public class Log {
         return level;
     }
 
+    /** Sets the log output backend (e.g. {@link Backend#colorless}). */
     public static void setBackend(Cons2<Level, String> backend) {
         Log.backend = backend;
     }
 
+    /** Logs a message at the given level. */
     public static void log(Level level, String msg) {
         if (level.ordinal() <= Log.level.ordinal()) {
             backend.get(level, " " + msg);
         }
     }
 
+    /** Logs a message with a tag. */
     public static void log(Level level, String tag, String msg) {
         if (tag != null && !tag.isEmpty()) {
             log(level, "[" + tag + "] " + msg);
@@ -43,6 +53,7 @@ public class Log {
         }
     }
 
+    /** Logs a formatted message with a tag. */
     public static void log(Level level, String tag, String format, Object... args) {
         String formatted = String.format(format, args);
         log(level, tag, formatted);
@@ -116,12 +127,15 @@ public class Log {
         }
     }
 
+    /** Built-in log backends. */
     public static class Backend {
+        /** Colorized output to stdout. */
         public static void plain(Level level, String txt) {
             String colored = Log.colorForLevel(level) + Log.prefixForLevel(level) + Log.RESET + txt;
             System.out.println(colored);
         }
 
+        /** Plain-text output to stdout (no ANSI color codes). */
         public static void colorless(Level level, String txt) {
             System.out.println(Log.prefixForLevel(level) + txt);
         }

@@ -3,6 +3,13 @@ package copper.loader.container;
 import copper.loader.util.*;
 import java.util.*;
 
+/**
+ * A filter that checks class names against a list of include/exclude rules.
+ *
+ * <p>Each rule is a string in the form {@code "include <pattern>"} or {@code "exclude <pattern>"},
+ * where the pattern supports wildcards ({@code *}, {@code ?}). Rules are evaluated in order;
+ * the first matching rule determines the result. If no rule matches, the default is deny.</p>
+ */
 public class ClassFilter {
     protected ArrayList<Rule> rules;
 
@@ -10,14 +17,26 @@ public class ClassFilter {
         rules = new ArrayList<>();
     }
 
+    /**
+     * Adds a rule string ({@code "include <pattern>"} or {@code "exclude <pattern>"}).
+     *
+     * @throws RuntimeException if the rule string is invalid
+     */
     public void addRule(String txt) {
         rules.add(new Rule(txt));
     }
 
+    /** Removes all rules. */
     public void clearRules() {
         rules.clear();
     }
 
+    /**
+     * Checks whether a class name passes this filter.
+     *
+     * @param clazz fully qualified class name (dots or slashes)
+     * @return {@code true} if the class should be visible
+     */
     public boolean check(String clazz) {
         if (rules.isEmpty())
             return false;
@@ -28,10 +47,17 @@ public class ClassFilter {
         return false;
     }
 
+    /** A single include/exclude rule. */
     protected static class Rule {
         public Type type;
         public WildcardPattern pattern;
 
+        /**
+         * Parses a rule string like {@code "include com.example.*"}.
+         *
+         * @param rule the rule string
+         * @throws RuntimeException if the format is invalid
+         */
         public Rule(String rule) {
             boolean valid = false;
             try {

@@ -6,6 +6,10 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 
+/**
+ * Mixin patch: injects the Copper game data directory into Mindustry's
+ * {@code OS.env()} and {@code OS.hasEnv()} methods.
+ */
 @Mixin(OS.class)
 public abstract class COS {
     @Inject(method = "env", at = @At("HEAD"), cancellable = true)

@@ -7,15 +7,23 @@ import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * Holds information about the game being loaded (Mindustry).
+ *
+ * <p>On construction, the game version is read from {@code version.properties}
+ * and the platform variant (Desktop, Server, Android, iOS) is detected from
+ * {@code META-INF/MANIFEST.MF} inside the game jar. Version format varies by
+ * game release type (Release, Bleeding-Edge, or Custom).</p>
+ */
 public class Game {
     public Container container;
-    // number.build.revision
-    // number.0.beNum
-    // number.0.0
     public SemanticVersion version;
     public Type type;
     public Variant variant;
 
+    /**
+     * Creates the game descriptor by scanning the game jar for version and variant info.
+     */
     public Game() {
         container = Loader.platform.createGameContainer();
         container.id = "mindustry";
@@ -56,6 +64,9 @@ public class Game {
         }
     }
 
+    /**
+     * Initializes the game container (prepares classloader, sets up mixin engine).
+     */
     public void init() {
         try {
             container.init();
@@ -64,6 +75,11 @@ public class Game {
         }
     }
 
+    /**
+     * Launches the game by invoking the detected variant's {@code main} method.
+     *
+     * @param args command-line arguments passed to the game
+     */
     public void launch(String[] args) {
         if (variant == Variant.Unknown)
             throw new RuntimeException("failed to launch unknown variant of game");
@@ -75,12 +91,14 @@ public class Game {
         }
     }
 
+    /** Game release type. */
     public enum Type {
         Release,
         BleedingEdge,
         CustomBuild
     }
 
+    /** Known game platform variants, each identified by its main class name. */
     public enum Variant {
         Desktop("mindustry.desktop.DesktopLauncher"),
         Server("mindustry.server.ServerLauncher"),
@@ -89,6 +107,7 @@ public class Game {
         Unknown("")
         ;
 
+        /** The fully qualified main class name for this variant. */
         public final String mainClass;
 
         Variant(String mainClass) {

@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 
+/**
+ * Mixin patch: registers the {@link ExtendedPacket} wrapper during {@link Net} class initialization.
+ */
 @Mixin(Net.class)
 public abstract class CNet {
     @Inject(method = "<clinit>", at = @At("RETURN"))

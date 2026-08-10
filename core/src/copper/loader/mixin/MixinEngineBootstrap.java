@@ -3,6 +3,10 @@ package copper.loader.mixin;
 import copper.loader.util.*;
 import org.spongepowered.asm.service.*;
 
+/**
+ * Bootstrap entry point registered via the Mixin service loader.
+ * Delegates to {@link MixinEngineService}.
+ */
 public class MixinEngineBootstrap implements IMixinServiceBootstrap {
     @Override
     public String getName() {

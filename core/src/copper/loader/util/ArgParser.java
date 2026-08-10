@@ -4,77 +4,74 @@ import copper.loader.func.*;
 import java.util.*;
 
 /**
- * Command-line argument parser.
- * Supports:
- * - Short options (-x) and long options (--xxx)
- * - Options with arguments (-f file or --file file)
- * - Flags without arguments (-v or --verbose)
- * - '--' terminator: all following arguments are treated as positional
- * - Auto-generated -h/--help
- * - Custom argument placeholders in help (e.g. --input <file>)
- * - Multiple occurrences of the same option (values are cached)
- * - Custom Cons<T> handler or value retrieval via getOptionValues()
+ * Command-line argument parser with support for short/long options,
+ * flags, argument values, bundled flags ({@code -abc}), and
+ * {@code --} positional argument separation. Auto-registers {@code -h/--help}
+ * and allows value retrieval by option name.
  */
 public class ArgParser {
     private final String programName;
     private final String description;
     private final ArrayList<Option> options = new ArrayList<>();
     private final ArrayList<String> positionalArgs = new ArrayList<>();
-    private final Map<String, ArrayList<String>> optionValuesMap = new HashMap<>(); // key: short/long name, value: list of arguments
-    private final Set<String> flagSet = new HashSet<>(); // options that were present (for flags)
+    /** Maps option name (short or long) to all values provided. */
+    private final Map<String, ArrayList<String>> optionValuesMap = new HashMap<>();
+    /** Options that were present on the command line (for flags). */
+    private final Set<String> flagSet = new HashSet<>();
     private String positionalDescription = null;
     private boolean helpRequested = false;
 
     /**
      * Constructs a parser.
-     * @param programName name of the program (used in help)
+     *
+     * @param programName name of the program (used in help output)
      * @param description brief description of the program
      */
     public ArgParser(String programName, String description) {
         this.programName = programName;
         this.description = description;
-        // Auto-register -h/--help
+        // Auto-register -h/--help.
         addFlag("h", "help", "Show this help message", () -> helpRequested = true);
     }
 
     /**
-     * Set brief description of positional args
-     * @param positionalDescription description
+     * Sets a brief description for positional arguments shown in help.
      */
     public void setPositionalDescription(String positionalDescription) {
         this.positionalDescription = positionalDescription;
     }
 
     /**
-     * Registers a flag (option without argument) with an action.
+     * Registers a flag (option without argument) with a callback action.
      */
     public void addFlag(String shortOpt, String longOpt, String desc, Runnable action) {
         options.add(new Option(shortOpt, longOpt, desc, false, null, action, null));
     }
 
     /**
-     * Registers a flag without an action (just for checking presence via hasOption()).
+     * Registers a flag without an action (presence can be checked via {@link #hasOption}).
      */
     public void addFlag(String shortOpt, String longOpt, String desc) {
         options.add(new Option(shortOpt, longOpt, desc, false, null, null, null));
     }
 
     /**
-     * Registers an option with an argument, with a Cons handler and a custom argument placeholder.
+     * Registers an option with an argument and a callback handler.
      */
     public void addOption(String shortOpt, String longOpt, String desc, String argName, Cons<String> action) {
         options.add(new Option(shortOpt, longOpt, desc, true, argName, null, action));
     }
 
     /**
-     * Registers an option with an argument, without a handler (value can be retrieved later).
+     * Registers an option with an argument without a handler (value can be retrieved later).
      */
     public void addOption(String shortOpt, String longOpt, String desc, String argName) {
         options.add(new Option(shortOpt, longOpt, desc, true, argName, null, null));
     }
 
     /**
-     * Parses the command-line arguments.
+     * Parses command-line arguments.
+     *
      * @throws IllegalArgumentException if an unknown option or missing argument is encountered
      */
     public void parse(String[] args) {
@@ -131,7 +128,7 @@ public class ArgParser {
                     processOption(opt, optValue);
                     i++;
                 } else {
-                    // Bundled flags, e.g. -abc (a, b, c are flags)
+                    // Bundled flags, e.g. -abc (a, b, c are flags).
                     for (int j = 0; j < optString.length(); j++) {
                         char c = optString.charAt(j);
                         String shortOpt = String.valueOf(c);
@@ -167,19 +164,17 @@ public class ArgParser {
         }
 
         if (opt.hasArg) {
-            // Store the value in the map for both short and long names if they exist
+            // Store the value for both short and long names.
             if (opt.shortOpt != null) {
                 optionValuesMap.computeIfAbsent(opt.shortOpt, k -> new ArrayList<>()).add(value);
             }
             if (opt.longOpt != null) {
                 optionValuesMap.computeIfAbsent(opt.longOpt, k -> new ArrayList<>()).add(value);
             }
-            // Invoke the handler if present
             if (opt.optionAction != null) {
                 opt.optionAction.get(value);
             }
         } else {
-            // Mark as present for both short and long names
             if (opt.shortOpt != null) flagSet.add(opt.shortOpt);
             if (opt.longOpt != null) flagSet.add(opt.longOpt);
             if (opt.flagAction != null) {
@@ -207,9 +202,10 @@ public class ArgParser {
     }
 
     /**
-     * Checks if a flag or option was present on the command line.
+     * Checks whether a flag or option was present on the command line.
+     *
      * @param name short or long option name (without leading dashes)
-     * @return true if the option was given
+     * @return {@code true} if the option was given
      */
     public boolean hasOption(String name) {
         return flagSet.contains(name) || optionValuesMap.containsKey(name);
@@ -217,8 +213,9 @@ public class ArgParser {
 
     /**
      * Returns the first argument value for a given option.
+     *
      * @param name short or long option name (without leading dashes)
-     * @return the first argument string, or null if the option was not given or has no argument
+     * @return the first value, or {@code null} if the option was not given or has no argument
      */
     public String getOptionValue(String name) {
         List<String> list = optionValuesMap.get(name);
@@ -227,24 +224,18 @@ public class ArgParser {
 
     /**
      * Returns all argument values for a given option (preserves order of occurrence).
-     * @param name short or long option name (without leading dashes)
-     * @return an unmodifiable list of values
      */
     public List<String> getOptionValues(String name) {
         ArrayList<String> list = optionValuesMap.get(name);
         return list != null ? list : new ArrayList<>();
     }
 
-    /**
-     * Returns the list of positional arguments (non-option arguments).
-     */
+    /** Returns the list of positional arguments (non-option arguments). */
     public List<String> getPositionalArgs() {
         return positionalArgs;
     }
 
-    /**
-     * Prints the help message.
-     */
+    /** Prints the help message to stdout. */
     public void printHelp() {
         System.out.println("Usage: " + programName + " [options] [arguments...]");
         if (description != null && !description.isEmpty()) {
@@ -272,15 +263,13 @@ public class ArgParser {
             System.out.println("\nWhen '--' is encountered, all following arguments are treated as " + positionalDescription + ".");
     }
 
-    /**
-     * Internal option representation.
-     */
+    /** Internal option representation. */
     private static class Option {
         final String shortOpt;
         final String longOpt;
         final String description;
         final boolean hasArg;
-        final String argName;          // placeholder shown in help
+        final String argName;
         final Runnable flagAction;
         final Cons<String> optionAction;
 

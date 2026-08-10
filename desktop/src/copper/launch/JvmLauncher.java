@@ -7,6 +7,14 @@ import copper.loader.util.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * JVM (desktop) launcher entry point for CopperLoader.
+ *
+ * <p>Parses command-line arguments, initializes the loader platform and mod
+ * system, then hands control to the game. Supports debug/version flags and
+ * per-mod mixin configuration options. Arguments after {@code --} are forwarded
+ * to the game.</p>
+ */
 public class JvmLauncher {
     public static void main(String[] args) {
         if (System.console() == null)
@@ -52,6 +60,10 @@ public class JvmLauncher {
         }
     }
 
+    /**
+     * Finds a container by id. Returns the game container for {@code "mindustry"},
+     * otherwise looks up a Copper mod by id.
+     */
     private static Container findContainer(String id) {
         if (id.equals("mindustry"))
             return Loader.game.container;
@@ -61,6 +73,7 @@ public class JvmLauncher {
         return mod.container;
     }
 
+    /** Displays the loader version by initializing a minimal platform. */
     private static void displayVersion() {
         JvmPlatform.gameJar = new File("");
         Loader.platform = new JvmPlatform();

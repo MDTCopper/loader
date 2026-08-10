@@ -14,6 +14,14 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 
+/**
+ * Mixin patch: integrates Copper mods into Mindustry's mod loading pipeline.
+ *
+ * <p>This is the main integration point: it hooks into {@code Mods.load()} to
+ * add Copper mods alongside regular ones, prevents in-game mod management
+ * (removal, enabling/disabling, importing), redirects config folders, and
+ * forces mod loading. See individual injector methods for details.</p>
+ */
 @Mixin(Mods.class)
 public abstract class CMods {
     @Shadow
@@ -21,6 +29,10 @@ public abstract class CMods {
     @Shadow
     ObjectMap<Class<?>, Mods.ModMeta> metas;
 
+    /**
+     * Loads Copper mods and injects them into Mindustry's mod list.
+     * Injects before {@code sortMods()} to ensure correct ordering.
+     */
     @Inject(method = "load", at = @At(value = "INVOKE", target = "sortMods"))
     void cLoadCopperMod(CallbackInfo ci) {
         Log.info("Loading copper mods.");
@@ -37,7 +49,7 @@ public abstract class CMods {
 
         loadedMods.each(this::updateDependencies);
         for(var mod : loadedMods){
-            // skip mods where the state has already been resolved
+            // Skip mods that have already been disabled/resolved.
             if(mod.state != Mods.ModState.enabled)
                 continue;
             if(!mod.isSupported())
@@ -46,6 +58,7 @@ public abstract class CMods {
         Log.info("Loaded @ copper mods.", loadedMods.count(Mods.LoadedMod::enabled));
     }
 
+    /** Registers Copper extended packets for all enabled Copper mods after loading. */
     @Inject(method = "load", at = @At("RETURN"))
     void cLoadRegisterExtendedPackets(CallbackInfo ci) {
         Vars.mods.eachEnabled(mod -> {
@@ -54,18 +67,21 @@ public abstract class CMods {
         });
     }
 
+    /** Prevents mod removal from the in-game UI. */
     @Inject(method = "removeMod", at = @At("HEAD"), cancellable = true)
     void cBanRemoveMod(Mods.LoadedMod mod, CallbackInfo ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.remove"));
         ci.cancel();
     }
 
+    /** Prevents enabling/disabling mods from the in-game UI. */
     @Inject(method = "setEnabled", at = @At("HEAD"), cancellable = true)
     void cBanSetModEnabled(Mods.LoadedMod mod, boolean enabled, CallbackInfo ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.set-enable"));
         ci.cancel();
     }
 
+    /** Prevents importing mods from the in-game UI; returns a fake loaded mod instead. */
     @Inject(method = "importMod(Larc/files/Fi;Z)Lmindustry/mod/Mods$LoadedMod;", at = @At("HEAD"), cancellable = true)
     void cBanImportMod(Fi file, boolean forceEnable, CallbackInfoReturnable<Mods.LoadedMod> ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.import"));
@@ -79,6 +95,7 @@ public abstract class CMods {
         ci.setReturnValue(fake);
     }
 
+    /** Redirects the config folder for Copper mods to the Copper data directory. */
     @Inject(method = "getConfigFolder", at = @At("HEAD"), cancellable = true)
     void cReplaceCopperConfigFolder(Mod mod, CallbackInfoReturnable<Fi> ci) {
         Mods.ModMeta meta = metas.get(mod.getClass());
@@ -86,6 +103,7 @@ public abstract class CMods {
             ci.setReturnValue(Copper.getModsDataFolder().child(copper.copperMod.id.replace(':', '-')));
     }
 
+    /** Forces mod loading (overrides the {@code skipModLoading} setting). */
     @Inject(method = "skipModLoading", at = @At("RETURN"), cancellable = true)
     void cForceModLoad(CallbackInfoReturnable<Boolean> ci) {
         ci.setReturnValue(false);

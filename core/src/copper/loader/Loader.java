@@ -2,12 +2,24 @@ package copper.loader;
 
 import copper.loader.util.*;
 
+/**
+ * Central entry point for CopperLoader.
+ *
+ * <p>Initialization sequence:
+ * <ol>
+ *   <li>{@link #init()} — create {@link Vars}, {@link Game}, {@link Mods}, then discover and read all mods.</li>
+ *   <li>{@link #launch(String[])} — initialize the game, pre-init and init all mods, then launch the game.</li>
+ * </ol>
+ */
 public class Loader {
     public static IPlatform platform;
     public static Game game;
     public static Mods mods;
     public static Vars vars;
 
+    /**
+     * Initializes the loader infrastructure: creates vars, game metadata, mod manager, and reads all mods.
+     */
     public static void init() {
         vars = new Vars();
         game = new Game();
@@ -17,6 +29,14 @@ public class Loader {
         mods.read();
     }
 
+    /**
+     * Launches the loaded game with the given arguments.
+     *
+     * <p>This first initializes the game container, then pre-inits and inits all mods,
+     * and finally hands control to the game's main entry point.</p>
+     *
+     * @param args command-line arguments forwarded to the game
+     */
     public static void launch(String[] args) {
         Log.info("Launching game.");
         game.init();

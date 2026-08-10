@@ -10,29 +10,64 @@ import java.lang.reflect.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * A Copper-native mod, backed by a {@link Container} and described by a
+ * {@code copper.mod.json} (or {@code .hjson}) meta file.
+ *
+ * <p>Lifecycle:<br>
+ * construction reads the meta file and creates the container;<br>
+ * {@link #resolve()} wires dependencies, conflicts, export rules, and mixin configs
+ * (called during {@link Mods#read});<br>
+ * {@link #preInit()} initializes the container (classloader + mixin);<br>
+ * {@link #init()} invokes the mod's static {@code init()} method;<br>
+ * {@link #load()} instantiates the main class.</p>
+ */
 public class Mod {
+    /** Registered meta readers, indexed by version number minus 1. */
     private static final IMetaReader[] metaReaders = new IMetaReader[] {new MetaReaderV1()};
 
+    /** Unique mod identifier ({@code author:name}). */
     public String id;
+    /** Author name displayed in game */
     public String author;
+    /** Mod name displayed in game */
     public String name;
+    /** Mod description displayed in game */
     public String description;
+    /** Whether this mod is hidden (server/client-side only, no new content). Passed through to the game's mod meta. */
     public boolean hidden;
+    /** The mod's semantic version. */
     public Version version;
+    /** Fully qualified main class name. */
     public String main;
+    /** URL to the mod's repository or homepage. */
     public String repo;
+    /** Additional ModMeta fields (e.g. subtitle), stored as a plain JSON string. */
     public String extraMeta;
 
+    /** Declared dependency descriptors (includes conflicts). */
     public ArrayList<ModDescriptor> dependency;
+    /** Declared conflict descriptors. */
     public ArrayList<ModDescriptor> conflict;
+    /** Mixin configuration descriptors. */
     public ArrayList<MixinDescriptor> mixin;
+    /** Own-class export rules ({@code include/exclude <pattern>}). */
     public ArrayList<String> exportRule;
+    /** Per-dependency import rules ({@code depId → ["include ...", ...]}). */
     public Map<String, ArrayList<String>> importRule;
 
+    /** The mod file on disk (jar or directory). */
     public File file;
+    /** The class/resource container for this mod. */
     public Container container;
+    /** The instantiated main class instance (set after {@link #load()}). */
     public Object instance;
 
+    /**
+     * Creates a mod by reading its jar/directory and parsing its meta file.
+     *
+     * @param baseFile the mod file (jar/zip or directory)
+     */
     public Mod(File baseFile) {
         id = author = name = description = main = repo = "";
         extraMeta = "{}";
@@ -52,6 +87,12 @@ public class Mod {
         }
     }
 
+    /**
+     * Loads and parses the mod's meta file ({@code copper.mod.json} or {@code copper.mod.hjson}).
+     *
+     * <p>The meta file must have a {@code "version"} field and a {@code "meta"} object.
+     * The version number selects the appropriate {@link IMetaReader}.</p>
+     */
     protected void loadMeta(){
         try {
             byte[] metaContent = container.resource.get("copper.mod.json");
@@ -71,6 +112,9 @@ public class Mod {
         }
     }
 
+    /**
+     * Initializes the mod container (classloader, mixin engine).
+     */
     public void preInit() {
         try {
             container.init();
@@ -79,6 +123,9 @@ public class Mod {
         }
     }
 
+    /**
+     * Invokes the mod main class's static {@code init()} method, if present.
+     */
     public void init() {
         try {
             Class<?> main = container.loadPublicOwnClass(this.main);
@@ -93,6 +140,9 @@ public class Mod {
         }
     }
 
+    /**
+     * Instantiates the mod main class via its no-arg constructor.
+     */
     public void load() {
         if (instance != null)
             return;
@@ -106,6 +156,10 @@ public class Mod {
         }
     }
 
+    /**
+     * Validates dependencies and conflicts, wires export/import rules, and registers mixin configs.
+     * The Copper core mod container is added later in {@link Mods#resolveMod}.
+     */
     public void resolve() {
         for (String rule : exportRule)
             container.export.addRule(rule);
@@ -124,7 +178,7 @@ public class Mod {
                     throw new RuntimeException("failed to find dependency for " + id + " : " + dep.id);
                 if (!dep.version.check(o.version))
                     throw new RuntimeException("dependency is not supported by " + id + " : " + o.id + " " + o.version.toString());
-                // core mod will be added in Mods::resolveMod
+                // The core mod is added separately in Mods.resolveMod.
                 if (!o.id.equals("copper:core")) {
                     DependencyInfo info = new DependencyInfo(o.container);
                     for (String rule : importRule.get(o.id))

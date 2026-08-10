@@ -9,6 +9,9 @@ import mindustry.*;
 import mindustry.mod.*;
 import copper.loader.mod.Mod;
 
+/**
+ * Bridges a Copper {@link Mod} into Mindustry's {@link Mods.LoadedMod} system.
+ */
 public class LoadedCopperMod extends Mods.LoadedMod {
     private static Json json = new Json();
     public Mod copperMod;
@@ -19,6 +22,9 @@ public class LoadedCopperMod extends Mods.LoadedMod {
             throw new ArcRuntimeException("mod main class is not a sub-class of CopperMod: " + mod.id);
     }
 
+    /**
+     * Builds a {@link LoadedCopperMod} from a Copper mod descriptor.
+     */
     public static LoadedCopperMod build(Mod mod) {
         CopperModMeta meta = json.fromJson(CopperModMeta.class, mod.extraMeta);
         meta.copperMod = mod;

@@ -5,6 +5,7 @@ build/
 !**/src/test/**/build/
 
 core/res/version.properties
+.deepcode/
 
 ### IntelliJ IDEA ###
 .idea

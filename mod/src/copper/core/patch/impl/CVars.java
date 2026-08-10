@@ -4,6 +4,10 @@ import mindustry.*;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 
+/**
+ * Mixin patch: when running without a console, replaces Mindustry's color-coded log tags
+ * with plain-text equivalents for readability in non-interactive terminals.
+ */
 @Mixin(Vars.class)
 public class CVars {
     @ModifyVariable(method = "loadLogger", at = @At("STORE"), ordinal = 1)

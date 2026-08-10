@@ -6,14 +6,33 @@ import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * Holds all runtime paths and loader metadata.
+ *
+ * <p>Directory layout under the game data folder:
+ * <pre>
+ * {gameData}/
+ * ├── copper/           ← loaderDataFolder
+ * │   ├── mods/         ← copperModFolder
+ * │   └── datas/        ← copperModDataFolder
+ * └── mods/             ← gameModFolder (standard Mindustry mods)
+ * </pre>
+ */
 public class Vars {
+    /** The game's data directory (e.g., {@code ~/.mindustry}). */
     public File gameDataFolder;
+    /** The Copper loader's data directory ({@code {gameData}/copper}). */
     public File loaderDataFolder;
+    /** Mindustry's standard mod folder ({@code {gameData}/mods}). */
     public File gameModFolder;
+    /** Copper-native mod folder ({@code {gameData}/copper/mods}). */
     public File copperModFolder;
+    /** Copper mod data folder ({@code {gameData}/copper/datas}). */
     public File copperModDataFolder;
 
+    /** Container representing the loader's own classes. */
     public Container loaderContainer;
+    /** The installed loader version, read from {@code version.properties}. */
     public final SemanticVersion loaderVersion;
 
     public Vars() {

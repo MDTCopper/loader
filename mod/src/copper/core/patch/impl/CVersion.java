@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 
+/**
+ * Mixin patch: appends the Copper loader version to Mindustry's combined version string.
+ */
 @Mixin(Version.class)
 public abstract class CVersion {
     @Inject(method = "combined", at = @At("RETURN"), cancellable = true)

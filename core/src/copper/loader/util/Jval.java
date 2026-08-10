@@ -3,15 +3,19 @@ package copper.loader.util;
 import java.io.*;
 import java.util.*;
 
-/** An HJSON parser borrow from Arc. Can be used as a standard json value.
- * Output can be converted to standard JSON. This class is heavily based upon the Hjson Java implementation.*/
+/**
+ * An HJSON parser and JSON value type.
+ *
+ * <p>Borrowed from Arc. Output can be converted to standard JSON.
+ * This class is heavily based upon the Hjson Java implementation.</p>
+ */
 public class Jval {
     public static final Jval
             TRUE = new Jval(true),
             FALSE = new Jval(false),
             NULL = new Jval(null);
 
-    /** Internal value. May be a string, number, boolean, JsonArray, JsonMap or null. */
+    /** Internal value. May be a String, Number, Boolean, {@link JsonArray}, {@link JsonMap}, or {@code null}. */
     private Object value;
 
     Jval(Object value) {

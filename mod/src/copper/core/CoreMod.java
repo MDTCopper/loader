@@ -3,6 +3,9 @@ package copper.core;
 import arc.util.*;
 import copper.core.mod.*;
 
+/**
+ * The Copper core mod's main class.
+ */
 public class CoreMod extends CopperMod {
     public static I18NBundle bundles;
 

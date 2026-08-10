@@ -2,9 +2,18 @@ package copper.loader.container;
 
 import copper.loader.container.resource.*;
 
+/**
+ * A container that delegates class loading to an existing {@link ClassLoader}.
+ *
+ * <p>Used to wrap classloaders that were created outside of the Container system
+ * (e.g., the loader's own classpath).</p>
+ */
 public class ForwardedContainer extends Container {
     public ClassLoader loader;
 
+    /**
+     * @param target the classloader to delegate to
+     */
     public ForwardedContainer(ClassLoader target) {
         super();
         loader = target;

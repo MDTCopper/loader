@@ -1,12 +1,26 @@
 package copper.loader.util;
 
+/**
+ * Simple wildcard pattern matcher.
+ *
+ * <p>Supports:
+ * <ul>
+ *   <li>{@code *} — matches any sequence of characters (including empty)</li>
+ *   <li>{@code ?} — matches exactly one character</li>
+ * </ul>
+ * Consecutive stars are compressed to a single star.
+ */
 public class WildcardPattern {
     private final String pattern;
 
+    /**
+     * @param pattern the wildcard pattern string
+     */
     public WildcardPattern(String pattern) {
         this.pattern = compress(pattern == null ? "" : pattern);
     }
 
+    /** Compresses consecutive {@code *} into a single {@code *}. */
     private static String compress(String pattern) {
         if (pattern.isEmpty()) {
             return pattern;
@@ -27,6 +41,12 @@ public class WildcardPattern {
         return sb.toString();
     }
 
+    /**
+     * Tests whether the given text matches this pattern.
+     *
+     * @param text the string to test (null treated as empty)
+     * @return {@code true} if the text matches
+     */
     public boolean match(String text) {
         if (text == null) {
             text = "";
@@ -53,6 +73,7 @@ public class WildcardPattern {
             }
         }
 
+        // Consume trailing stars.
         while (j < p.length() && p.charAt(j) == '*') {
             j++;
         }

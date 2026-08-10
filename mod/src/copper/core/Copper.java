@@ -11,20 +11,34 @@ import copper.loader.mod.*;
 import mindustry.Vars;
 import java.util.*;
 
+/**
+ * Utility methods for Copper mods running inside Mindustry.
+ */
 public class Copper {
+    /** The Copper loader's own data directory. */
     public static Fi getDataFolder() {
         return new Fi(Loader.vars.loaderDataFolder);
     }
 
+    /** Directory where Copper mods store persistent data. */
     public static Fi getModsDataFolder() {
         return new Fi(Loader.vars.copperModDataFolder);
     }
 
+    /** Directory containing Copper mod jars. */
     public static Fi getModsFolder() {
         return new Fi(Loader.vars.copperModFolder);
     }
 
-    // clazz -> main class of mod
+    /**
+     * Looks up a Copper mod by its main class.
+     *
+     * <p>The mod id is derived from the first two segments of the class package name.
+     * For example, {@code author.mod.SomeClass} maps to mod id {@code "author:mod"}.</p>
+     *
+     * @param clazz the main class of the Copper mod
+     * @return the mod, or {@code null} if not found
+     */
     public static @Nullable Mod getMod(Class<? extends CopperMod> clazz) {
         String id = null;
         String name = clazz.getName();
@@ -36,6 +50,7 @@ public class Copper {
         return id == null ? null : Loader.mods.getModById(id.replace('.', ':'));
     }
 
+    /** Like {@link #getMod}, but throws if the mod is not found. */
     public static Mod getModNonNull(Class<? extends CopperMod> clazz) {
         Mod mod = getMod(clazz);
         if (mod == null)
@@ -43,12 +58,14 @@ public class Copper {
         return mod;
     }
 
+    /** Returns the root {@link Fi} of a mod's jar or directory. */
     public static Fi getModRoot(Class<? extends CopperMod> clazz) {
         Mod mod = getModNonNull(clazz);
         Fi file = new Fi(mod.file);
         return file.isDirectory() ? file : new ZipFi(file);
     }
 
+    /** Returns a file inside a mod's jar or directory. */
     public static Fi getModFile(Class<? extends CopperMod> clazz, String path) {
         if (path.startsWith("/"))
             path = path.substring(1);
@@ -66,14 +83,17 @@ public class Copper {
         }
     }
 
+    /** Returns the {@code assets} folder inside a mod. */
     public static Fi getModAssetFolder(Class<? extends CopperMod> clazz) {
         return getModFile(clazz, "assets");
     }
 
+    /** Returns a file inside the mod's {@code assets} folder. */
     public static Fi getModAsset(Class<? extends CopperMod> clazz, String path) {
         return getModFile(clazz, "assets/" + path);
     }
 
+    /** Creates a {@link Settings} instance backed by a Copper mod's data directory. */
     public static Settings createSettings(Class<? extends CopperMod> clazz) {
         Mod mod = getModNonNull(clazz);
         CopperSettings settings = new CopperSettings();
@@ -82,11 +102,16 @@ public class Copper {
         return settings;
     }
 
+    /** Creates an i18n bundle from a mod's {@code bundles/bundle} asset. */
     public static I18NBundle createBundle(Class<? extends CopperMod> clazz) {
         Fi handle = new ForwardedFi("copper/bundles/bundle", path -> getModAsset(clazz, path));
         return I18NBundle.createBundle(handle, Locale.getDefault());
     }
 
+    /**
+     * Applies an i18n bundle to translate mod metadata fields
+     * (name, author, description, subtitle) for both Copper and Mindustry mod registries.
+     */
     public static void translateModMeta(Class<? extends CopperMod> clazz, I18NBundle bundle) {
         var copperMod = getModNonNull(clazz);
         copperMod.name = bundle.get("mod.name", copperMod.name);

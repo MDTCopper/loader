@@ -8,10 +8,20 @@ import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
 
+/**
+ * A forwarded {@link Fi} that delegates all operations to a target provided by a function.
+ *
+ * <p>Used to create virtual file handles that resolve dynamically (e.g., loading
+ * resources from inside a mod's jar via {@link copper.core.Copper#getModAsset}).</p>
+ */
 public class ForwardedFi extends Fi {
     protected Func<String, Fi> provider;
     protected Fi target;
 
+    /**
+     * @param path     the virtual path
+     * @param provider function that maps a path to the actual backing {@link Fi}
+     */
     public ForwardedFi(String path, Func<String, Fi> provider) {
         super(path, Files.FileType.absolute);
         this.provider = provider;

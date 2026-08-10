@@ -2,9 +2,16 @@ package copper.loader.container.resource;
 
 import java.util.zip.*;
 
+/**
+ * Reads resources from a zip/jar file.
+ */
 public class ZipResource implements IResource {
+    /** The opened zip file. */
     public ZipFile file;
 
+    /**
+     * @param file the zip file to read from
+     */
     public ZipResource(ZipFile file) {
         this.file = file;
     }

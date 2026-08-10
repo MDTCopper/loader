@@ -10,8 +10,16 @@ import java.net.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * JVM desktop platform implementation.
+ *
+ * <p>Provides jar/zip-based containers, native library extraction,
+ * and a classloader-isolated mixin engine.</p>
+ */
 public class JvmPlatform implements IPlatform {
+    /** Path to the game jar file. */
     public static File gameJar;
+    /** Game data directory (default: {@code .mindustry}). */
     public static File gameData = new File(".mindustry");
 
     @Override
@@ -36,6 +44,13 @@ public class JvmPlatform implements IPlatform {
         JvmPlatform.extractFile(data, target);
     }
 
+    /**
+     * Creates a mixin engine inside an isolated classloader.
+     *
+     * <p>The isolated classloader only exposes SpongePowered ASM classes and
+     * Copper's mixin internals, as defined by {@link MixinContainerClassFilter}.
+     * All other classes are delegated to the parent classloader.</p>
+     */
     @Override
     public IMixinEngine createMixinEngine() {
         ClassLoader cl = new ClassLoader(JvmLauncher.class.getClassLoader()) {
@@ -117,6 +132,7 @@ public class JvmPlatform implements IPlatform {
         return gameData;
     }
 
+    /** Creates a {@link JvmContainer} backed by a zip/jar file. */
     private Container createJarContainer(File file) {
         try {
             Container container = new JvmContainer();
@@ -128,6 +144,10 @@ public class JvmPlatform implements IPlatform {
         }
     }
 
+    /**
+     * Extracts a byte array to a file, but only if the file doesn't
+     * already exist with the same content.
+     */
     private static void extractFile(byte[] data, File file) {
         try (var fis = new FileInputStream(file)) {
             byte[] curr = fis.readAllBytes();

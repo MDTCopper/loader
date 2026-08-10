@@ -28,11 +28,24 @@ subprojects {
             archiveClassifier.set('sources')
         }
 
+        tasks.withType(Javadoc) {
+            options.encoding = 'UTF-8'
+            options.locale = 'en_US'
+            options.addStringOption('Xdoclint:none', '-quiet')
+            options.JFlags = ['-Duser.language=en', '-Duser.country=US']
+        }
+
+        task javadocJar(type: Jar) {
+            archiveClassifier.set('javadoc')
+            from javadoc
+        }
+
         publishing {
             publications {
                 mavenJava(MavenPublication) {
                     from components.java
                     artifact sourcesJar
+                    artifact javadocJar
                 }
             }
         }

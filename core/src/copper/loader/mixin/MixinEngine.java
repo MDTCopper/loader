@@ -9,6 +9,12 @@ import org.spongepowered.asm.util.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Singleton mixin engine wrapping the SpongePowered Mixin framework.
+ *
+ * <p>This class holds shared state (bytecode provider, configs, transformer)
+ * and serves as the single entry point for mixin operations across all containers.</p>
+ */
 public class MixinEngine implements IMixinEngine {
     static Func<String, byte[]> bytecodeProvider;
     static boolean enableLog = false;

@@ -14,6 +14,15 @@ import java.net.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * Mixin service provider that integrates Copper's container system into the
+ * SpongePowered Mixin framework.
+ *
+ * <p>Implements {@link IClassProvider}, {@link IClassBytecodeProvider}, and
+ * {@link ITransformerProvider} to serve bytecode from {@link MixinEngine#bytecodeProvider}
+ * and mixin configs from in-memory {@code copper://} URIs. Captures the
+ * framework's {@link IMixinTransformer} during wiring for later use by containers.</p>
+ */
 public class MixinEngineService extends MixinServiceAbstract implements ITransformerProvider, IClassProvider, IClassBytecodeProvider {
     @Override
     public String getName() {
@@ -65,6 +74,10 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
         return new ContainerHandleVirtual("Copper");
     }
 
+    /**
+     * Serves resources. Mixin configs stored in {@link MixinEngine#config} are accessible
+     * via {@code copper://<id>.json} URIs. All other resources are fetched from the classpath.
+     */
     @Override
     public InputStream getResourceAsStream(String name) {
         if (name.startsWith("copper://") && name.endsWith(".json")) {
@@ -136,6 +149,9 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
         super.wire(phase, phaseConsumer);
     }
 
+    /**
+     * Captures the {@link IMixinTransformer} when the framework offers its internals.
+     */
     @Override
     public void offer(IMixinInternal internal) {
         super.offer(internal);

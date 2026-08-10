@@ -2,9 +2,23 @@ package copper.loader.mod;
 
 import java.util.*;
 
+/**
+ * A version filter that evaluates semantic version expressions.
+ *
+ * <p>Supports comparison operators ({@code >=, <=, >, <, =, !=}),
+ * caret ({@code ^}) and tilde ({@code ~}) ranges, wildcards ({@code *}, {@code x}),
+ * hyphen ranges ({@code A - B}), parentheses grouping, and logical operators
+ * ({@code &&}, {@code ||}, and implicit AND between adjacent expressions).</p>
+ *
+ * <p>Architecture: a rule string is tokenized by {@link Lexer}, parsed into an
+ * {@link Expr} AST by {@link Parser}, and evaluated against a {@link SemanticVersion}.</p>
+ */
 public class SemanticVersionFilter implements IVersionFilter {
     protected Expr root;
 
+    /**
+     * @param rule the version filter expression string, or {@code null}/empty for "always match"
+     */
     public SemanticVersionFilter(String rule) {
         if (rule == null || rule.trim().isEmpty()) {
             this.root = v -> true;
@@ -15,6 +29,7 @@ public class SemanticVersionFilter implements IVersionFilter {
         }
     }
 
+    @Override
     public boolean check(Version v) {
         if (v instanceof SemanticVersion ver)
             return root != null && root.evaluate(ver);
@@ -22,7 +37,7 @@ public class SemanticVersionFilter implements IVersionFilter {
     }
 
     // ==========================================
-    // 1. Lexer
+    // 1. Lexer — tokenizes the rule string
     // ==========================================
 
     protected enum TokenType {
@@ -41,19 +56,23 @@ public class SemanticVersionFilter implements IVersionFilter {
 
         Lexer(String input) { this.input = input; }
 
+        /**
+         * Tokenizes the input string into a flat token list.
+         * Whitespace is stripped; implicit AND is handled later by the parser.
+         */
         List<Token> tokenize() {
             List<Token> tokens = new ArrayList<>();
             while (pos < input.length()) {
                 char c = input.charAt(pos);
 
-                // process implicit And in Parser, strip ' ' here.
+                // Whitespace is stripped — implicit AND is handled in Parser.
                 if (Character.isWhitespace(c)) { pos++; continue; }
 
                 if (c == '(') { tokens.add(new Token(TokenType.LPAREN, "(")); pos++; continue; }
                 if (c == ')') { tokens.add(new Token(TokenType.RPAREN, ")")); pos++; continue; }
                 if (c == '-') { tokens.add(new Token(TokenType.HYPHEN, "-")); pos++; continue; }
 
-                // parse && and ||
+                // Parse && and ||.
                 if (c == '&' && pos + 1 < input.length() && input.charAt(pos + 1) == '&') {
                     tokens.add(new Token(TokenType.AND, "&&")); pos += 2; continue;
                 }
@@ -61,13 +80,13 @@ public class SemanticVersionFilter implements IVersionFilter {
                     tokens.add(new Token(TokenType.OR, "||")); pos += 2; continue;
                 }
 
-                // ops (>=, <=, !=, >, <, =, ^, ~)
+                // Operators (>=, <=, !=, >, <, =, ^, ~).
                 if (isOperatorChar(c)) {
                     tokens.add(new Token(TokenType.OPERATOR, readOperator()));
                     continue;
                 }
 
-                // vernum (number, x, X, *, .)
+                // Version numbers (digits, x, X, *, .).
                 if (isVersionChar(c)) {
                     tokens.add(new Token(TokenType.VERSION, readVersion()));
                     continue;
@@ -105,9 +124,10 @@ public class SemanticVersionFilter implements IVersionFilter {
     }
 
     // ==========================================
-    // 2. Parser AST
+    // 2. Parser — builds an Expr AST from tokens
     // ==========================================
 
+    /** An AST node that can be evaluated against a SemanticVersion. */
     protected interface Expr { boolean evaluate(SemanticVersion v); }
 
     protected static class AndExpr implements Expr {
@@ -128,7 +148,9 @@ public class SemanticVersionFilter implements IVersionFilter {
 
         Parser(List<Token> tokens) { this.tokens = tokens; }
 
-        // parse and construct full expr
+        /**
+         * Parses the full expression, combining primaries with AND/OR operators.
+         */
         Expr parseExpr() {
             Expr left = parsePrimary();
 
@@ -136,14 +158,14 @@ public class SemanticVersionFilter implements IVersionFilter {
                 Token t = tokens.get(pos);
                 if (t.type == TokenType.EOF || t.type == TokenType.RPAREN) break;
 
-                // explicit && or ||
                 if (t.type == TokenType.AND || t.type == TokenType.OR) {
+                    // Explicit && or ||.
                     pos++;
                     Expr right = parsePrimary();
                     if (t.type == TokenType.AND) left = new AndExpr(left, right);
                     else left = new OrExpr(left, right);
                 } else {
-                    // implicit And
+                    // Implicit AND between adjacent expressions.
                     Expr right = parsePrimary();
                     left = new AndExpr(left, right);
                 }
@@ -151,13 +173,15 @@ public class SemanticVersionFilter implements IVersionFilter {
             return left;
         }
 
-        // parse basic rule
+        /**
+         * Parses a single primary expression: parenthesized group, hyphen range, or comparison rule.
+         */
         Expr parsePrimary() {
             if (pos >= tokens.size() || tokens.get(pos).type == TokenType.EOF) return v -> true;
 
             Token t = tokens.get(pos);
 
-            // process ()
+            // Parenthesized sub-expression.
             if (t.type == TokenType.LPAREN) {
                 pos++; // consume '('
                 Expr e = parseExpr();
@@ -167,7 +191,7 @@ public class SemanticVersionFilter implements IVersionFilter {
                 return e;
             }
 
-            // process rule
+            // Optional leading operator (default is '=').
             String op = "=";
             if (t.type == TokenType.OPERATOR) {
                 op = t.value;
@@ -181,16 +205,15 @@ public class SemanticVersionFilter implements IVersionFilter {
                 pos++;
             }
 
-            // check somethine likes "1.0.0 - 2.0.0"
+            // Hyphen range: "A - B" → ">=A && <=B".
             if (pos < tokens.size() && tokens.get(pos).type == TokenType.HYPHEN) {
-                pos++; // 消耗 '-'
+                pos++; // consume '-'
                 Token nextT = tokens.get(pos);
                 String versionB = "";
                 if (nextT.type == TokenType.VERSION) {
                     versionB = nextT.value;
                     pos++;
                 }
-                // convert A - B to >= A && <= B
                 return new AndExpr(new SemverRule(">=", versionStr), new SemverRule("<=", versionB));
             }
 
@@ -199,13 +222,17 @@ public class SemanticVersionFilter implements IVersionFilter {
     }
 
     // ==========================================
-    // 3. SemverRule
+    // 3. SemverRule — a single version constraint
     // ==========================================
 
     protected static class SemverRule implements Expr {
         String op;
         int maj = -1, min = -1, pat = -1;
 
+        /**
+         * @param op     the comparison operator ({@code =, !=, >, >=, <, <=, ^, ~})
+         * @param verStr the version string, may contain {@code *} or {@code x} as wildcards
+         */
         public SemverRule(String op, String verStr) {
             this.op = (op == null || op.isEmpty()) ? "=" : op;
             String[] parts = verStr.split("\\.");
@@ -214,6 +241,7 @@ public class SemanticVersionFilter implements IVersionFilter {
             if (parts.length > 2) pat = parsePart(parts[2]);
         }
 
+        /** Parses a version component; returns -1 for {@code *}/@code{x} wildcards. */
         private int parsePart(String s) {
             if (s.equals("*") || s.equalsIgnoreCase("x")) return -1;
             try { return Integer.parseInt(s); } catch (Throwable e) { return -1; }
@@ -232,6 +260,7 @@ public class SemanticVersionFilter implements IVersionFilter {
             return false;
         }
 
+        /** Exact match; wildcards (-1) skip the component. */
         private boolean matchEq(SemanticVersion v) {
             if (maj != -1 && v.major != maj) return false;
             if (min != -1 && v.minor != min) return false;
@@ -239,6 +268,7 @@ public class SemanticVersionFilter implements IVersionFilter {
             return true;
         }
 
+        /** Strictly greater than. */
         private boolean matchGt(SemanticVersion v) {
             if (maj == -1) return false;
             if (v.major > maj) return true;
@@ -252,6 +282,7 @@ public class SemanticVersionFilter implements IVersionFilter {
             return v.patch > pat;
         }
 
+        /** Strictly less than. */
         private boolean matchLt(SemanticVersion v) {
             if (maj == -1) return false;
             if (v.major < maj) return true;
@@ -265,12 +296,14 @@ public class SemanticVersionFilter implements IVersionFilter {
             return v.patch < pat;
         }
 
+        /** Tilde range: {@code ~X.Y.Z} means {@code >=X.Y.Z && <X.(Y+1).0}. */
         private boolean matchTilde(SemanticVersion v) {
             if (!matchEq(v) && !matchGt(v)) return false;
             if (min == -1) return v.major == maj;
             return v.major == maj && v.minor == min;
         }
 
+        /** Caret range: {@code ^X.Y.Z} allows changes that do not modify the leftmost non-zero digit. */
         private boolean matchCaret(SemanticVersion v) {
             if (!matchEq(v) && !matchGt(v)) return false;
             if (maj != 0) return v.major == maj;

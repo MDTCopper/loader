@@ -5,7 +5,19 @@ import mindustry.net.*;
 
 import java.io.*;
 
+/**
+ * A network packet wrapper that delegates to a Copper-registered custom packet.
+ *
+ * <p>Mindustry's built-in packet ids are limited to a single {@code byte}
+ * (0–255). This wrapper encodes a Copper sub-packet id as an <b>unsigned short</b>
+ * (2 bytes, 0–65535), expanding the total addressable packet space for Copper mods.</p>
+ *
+ * <p>On the wire, an {@code ExtendedPacket} is a standard Mindustry packet
+ * whose payload starts with a 2-byte Copper sub-id followed by the
+ * wrapped packet's own serialized data.</p>
+ */
 public class ExtendedPacket extends Packet {
+    /** The wrapped Copper packet. */
     public Packet target;
 
     @Override

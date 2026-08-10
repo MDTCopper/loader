@@ -4,6 +4,12 @@ import org.spongepowered.asm.logging.*;
 import copper.loader.util.*;
 import java.util.*;
 
+/**
+ * Bridges Mixin's logging to Copper's {@link Log} system.
+ *
+ * <p>Non-error log messages are suppressed unless {@link MixinEngine#enableLog} is {@code true}.
+ * Slf4j-style {@code {}} placeholders are converted to printf-style {@code %s}.</p>
+ */
 public class MixinEngineLogger extends LoggerAdapterAbstract {
     private Map<Level, Log.Level> map;
     private String prefix;
@@ -21,10 +27,12 @@ public class MixinEngineLogger extends LoggerAdapterAbstract {
         map.put(Level.TRACE, Log.Level.DEBUG);
     }
 
+    @Override
     public String getType() {
         return "Copper Logger";
     }
 
+    @Override
     public void log(Level level, String text, Object ...args) {
         if (!MixinEngine.enableLog && (level != Level.ERROR && level != Level.FATAL))
             return;
@@ -33,15 +41,19 @@ public class MixinEngineLogger extends LoggerAdapterAbstract {
             return;
         Log.log(lv, prefix + MixinEngine.id, text.replace("{}", "%s"), args);
     }
+
+    @Override
     public void log(Level level, String message, Throwable t) {
         log(level, message);
         t.printStackTrace();
     }
 
+    @Override
     public void catching(Level level, Throwable t) {
         log(level, "Catching ".concat(t.toString()), t);
     }
 
+    @Override
     public <T extends Throwable> T throwing(T t) {
         log(Level.ERROR, "Throwing ".concat(t.toString()), t);
         return t;
