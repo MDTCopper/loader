@@ -28,7 +28,7 @@ import java.util.*;
  *
  *         "description": "A short description of the mod.",
  *         "hidden":       true,
- *         "repo":         "https://github.com/user/repo",
+ *         "repo":         "user/repo",
  *         "extra":        {},
  *
  *         // ── Dependencies & conflicts ─────────────────────────────
@@ -44,8 +44,8 @@ import java.util.*;
  *         // ── Class export / import rules ──────────────────────────
  *
  *         "exports": [
- *             "include author.modname.*",
  *             "exclude author.modname.internal.*"
+ *             "include author.modname.*",
  *         ],
  *         "imports": {
  *             "dep:mod":  "include dep.*",
@@ -58,7 +58,7 @@ import java.util.*;
  *         // ── Mixin configurations ─────────────────────────────────
  *
  *         "mixins": {
- *             "mindustry": "mixins.mindustry.json",
+ *             "mindustry": "mixins/mindustry.json",
  *             "some:mod": {
  *                 "version": ">=1.0.0 && <2.0.0",
  *                 "path":    "mixins.some.json"
