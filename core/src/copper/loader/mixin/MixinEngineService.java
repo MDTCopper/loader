@@ -103,9 +103,12 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
 
     @Override
     public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException, IOException {
-        ClassReader reader = new ClassReader(MixinEngine.bytecodeProvider.get(name));
+        byte[] code = MixinEngine.bytecodeProvider.get(name);
+        if (code == null)
+            throw new ClassNotFoundException(name);
+        ClassReader reader = new ClassReader(code);
         ClassNode node = new ClassNode();
-        reader.accept((ClassVisitor) node, readerFlags);
+        reader.accept(node, readerFlags);
         return node;
     }
 

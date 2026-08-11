@@ -25,6 +25,7 @@ public class JvmLauncher {
             parser.addOption("G", "game-jar", "Game jar file path", "path", path -> JvmPlatform.gameJar = new File(path));
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> JvmPlatform.gameData = new File(path));
             parser.addFlag("d", "debug", "Enable debug log output", () -> Log.setLevel(Log.Level.DEBUG));
+            parser.addFlag(null, "verbose", "Enable verbose log output", () -> Log.setLevel(Log.Level.VERBOSE));
             parser.addFlag("v", "version", "Display loader version", JvmLauncher::displayVersion);
             parser.addOption(null, "mixin-log", "Enable mixin log for mod", "modId");
             parser.addOption(null, "mixin-flag", "Add mixin flag for mod", "modId,flag1,flag2,...");

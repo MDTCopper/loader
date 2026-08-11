@@ -2,6 +2,7 @@ package copper.loader.mixin;
 
 import org.spongepowered.asm.logging.*;
 import copper.loader.util.*;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -24,7 +25,7 @@ public class MixinEngineLogger extends LoggerAdapterAbstract {
         map.put(Level.ERROR, Log.Level.ERROR);
         map.put(Level.FATAL, Log.Level.ERROR);
         map.put(Level.DEBUG, Log.Level.DEBUG);
-        map.put(Level.TRACE, Log.Level.DEBUG);
+        map.put(Level.TRACE, Log.Level.VERBOSE);
     }
 
     @Override
@@ -44,8 +45,11 @@ public class MixinEngineLogger extends LoggerAdapterAbstract {
 
     @Override
     public void log(Level level, String message, Throwable t) {
-        log(level, message);
-        t.printStackTrace();
+        if (map.get(level).ordinal() > Log.getLevel().ordinal())
+            return;
+        StringWriter writer = new StringWriter();
+        t.printStackTrace(new PrintWriter(writer));
+        log(level, message + "\n" + writer);
     }
 
     @Override

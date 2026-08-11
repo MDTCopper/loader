@@ -11,7 +11,7 @@ import copper.loader.func.*;
 public class Log {
 
     public enum Level {
-        ERROR, WARN, INFO, DEBUG
+        ERROR, WARN, INFO, DEBUG, VERBOSE
     }
 
     private static Level level = Level.INFO;
@@ -109,21 +109,23 @@ public class Log {
 
     static String colorForLevel(Level level) {
         switch (level) {
-            case INFO:  return BLUE;
-            case WARN:  return YELLOW;
-            case ERROR: return RED;
-            case DEBUG: return CYAN;
-            default:    return RESET;
+            case INFO:    return BLUE;
+            case WARN:    return YELLOW;
+            case ERROR:   return RED;
+            case DEBUG:   return CYAN;
+            case VERBOSE: return CYAN;
+            default:      return RESET;
         }
     }
 
     static String prefixForLevel(Level level) {
         switch (level) {
-            case INFO:  return "[I]";
-            case WARN:  return "[W]";
-            case ERROR: return "[E]";
-            case DEBUG: return "[D]";
-            default:    return "";
+            case INFO:    return "[I]";
+            case WARN:    return "[W]";
+            case ERROR:   return "[E]";
+            case DEBUG:   return "[D]";
+            case VERBOSE: return "[V]";
+            default:      return "";
         }
     }
 

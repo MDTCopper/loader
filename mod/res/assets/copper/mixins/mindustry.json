@@ -11,7 +11,8 @@
         "COS",
         "CVars",
         "CBeControl",
-        "CVersion"
+        "CVersion",
+        "CServerLauncher"
       ],
       "<8.0.27179 || (>= 8.1 <8.159)": "CNetBackport",
       "(>=8.0.27179 <8.1) || >=8.159": "CNet"
