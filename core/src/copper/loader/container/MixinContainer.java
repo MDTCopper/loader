@@ -7,14 +7,18 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * A pluggable classpath container providing class loading, resource access,
- * and dependency traversal between containers.
+ * A {@link Container} extended with mixin-based bytecode transformation.
  *
- * <p>Each container owns a set of {@link copper.loader.container.info.DependencyInfo dependencies}
- * (other containers it can search for classes), a set of
- * {@link copper.loader.container.info.MixinInfo mixin configs} (bytecode transformations
- * to apply), a {@link ResourceProvider}, and a {@link ClassFilter} controlling export
- * visibility.</p>
+ * <p>In addition to the dependency traversal and resource access inherited from
+ * {@link Container}, a {@code MixinContainer} holds {@link copper.loader.container.info.MixinInfo mixin configs}
+ * targeting itself or other containers. During {@link #init()}, a dedicated
+ * {@link IMixinEngine} is created to apply those configs. When {@link #getOwnBytecode(String)}
+ * is called, raw bytecode is transparently transformed through the mixin pipeline
+ * and cached.</p>
+ *
+ * <p>{@link #getAccessibleClass(String)} and {@link #getAccessibleBytecode(String)}
+ * extend the parent search order: mixin target containers are searched first,
+ * then falls back to dependency containers.</p>
  */
 public abstract class MixinContainer extends Container {
     /** Mixin configurations targeting this container. */
@@ -33,6 +37,9 @@ public abstract class MixinContainer extends Container {
         transformedBytecode = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Bootstraps the mixin engine if any mixin configs are registered, then delegates to the parent init.
+     */
     @Override
     public void init() {
         if (!mixin.isEmpty()) {
@@ -59,6 +66,9 @@ public abstract class MixinContainer extends Container {
         super.init();
     }
 
+    /**
+     * Searches mixin target containers first, then falls back to dependency containers.
+     */
     @Override
     public Class<?> getAccessibleClass(String name) {
         Class<?> c = null;
@@ -74,6 +84,9 @@ public abstract class MixinContainer extends Container {
         return c;
     }
 
+    /**
+     * Searches mixin target containers first, then falls back to dependency containers.
+     */
     @Override
     public byte[] getAccessibleBytecode(String name) {
         byte[] code = null;
@@ -89,6 +102,10 @@ public abstract class MixinContainer extends Container {
         return code;
     }
 
+    /**
+     * Returns mixin-transformed bytecode. Raw bytecode is fetched from the parent,
+     * transformed through the mixin pipeline, and cached for subsequent calls.
+     */
     @Override
     public byte[] getOwnBytecode(String name) {
         byte[] code = transformedBytecode.get(name);

@@ -1,6 +1,11 @@
 package copper.loader.container;
 
-// resources is missing, so it's abstract
+/**
+ * An abstract container that delegates class loading to an existing {@link ClassLoader}.
+ *
+ * <p>Resource access must be configured separately by subclasses (e.g. by adding
+ * a {@link copper.loader.container.resource.ClassPathResource} to {@code resource.resources}).</p>
+ */
 public abstract class DelegatedContainer extends Container {
     protected ClassLoader loader;
 

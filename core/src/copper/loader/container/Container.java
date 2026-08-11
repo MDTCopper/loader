@@ -3,6 +3,14 @@ package copper.loader.container;
 import copper.loader.container.info.*;
 import java.util.*;
 
+/**
+ * A pluggable classpath container providing class loading, resource access,
+ * and dependency traversal between containers.
+ *
+ * <p>Each container owns a set of {@link copper.loader.container.info.DependencyInfo dependencies}
+ * (other containers it can search for classes), a {@link ResourceProvider}, and a
+ * {@link ClassFilter} controlling export visibility.</p>
+ */
 public abstract class Container {
     /** Debug identifier (e.g. mod id). */
     public String id;
@@ -23,6 +31,12 @@ public abstract class Container {
     /** Called after all runtime required info is resolved. */
     public void init() {}
 
+    /**
+     * Finds bytecode accessible from this container by searching dependency containers.
+     *
+     * @param name fully qualified class name (dots or slashes)
+     * @return the bytecode, or {@code null} if not found
+     */
     public byte[] getAccessibleBytecode(String name) {
         byte[] code = null;
         // Search dependency containers for transformed bytecode.
@@ -37,10 +51,19 @@ public abstract class Container {
         return code;
     }
 
+    /**
+     * Reads raw bytecode from this container's own resources.
+     *
+     * @param name fully qualified class name (dots or slashes)
+     * @return the bytecode, or {@code null} if not found
+     */
     public byte[] getOwnBytecode(String name) {
         return resource.get(name.replace('.', '/') + ".class");
     }
 
+    /**
+     * Reads bytecode from this container's own resources, but only if the class passes the export filter.
+     */
     public byte[] getPublicOwnBytecode(String name) {
         if (export.check(name))
             return getOwnBytecode(name);
@@ -48,8 +71,7 @@ public abstract class Container {
     }
 
     /**
-     * Finds a class accessible from this container.
-     * Searches mixin targets first, then dependencies.
+     * Finds a class accessible from this container by searching dependency containers.
      *
      * @param name fully qualified class name
      * @return the class, or {@code null} if not found

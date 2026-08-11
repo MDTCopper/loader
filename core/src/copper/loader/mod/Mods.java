@@ -9,7 +9,7 @@ import java.util.*;
 
 /**
  * Manages mod discovery, topological ordering, dependency resolution,
- * and the mod lifecycle (read → pre-init → init → load).
+ * and the mod lifecycle (read → init → bootstrap → load).
  *
  * <p>Mods are scanned from two directories (Copper-native and standard Mindustry)
  * and sorted so that dependencies load before dependents. The Copper core mod is

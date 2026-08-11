@@ -7,6 +7,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+/**
+ * A child-first classloader for the mixin engine's isolated environment.
+ *
+ * <p>Classes matching {@link MixinContainerClassFilter} are loaded inside this
+ * classloader; all others are delegated to the parent. This isolates the Mixin
+ * framework and Copper's mixin integration classes from the rest of the system.</p>
+ */
 public class JvmMixinClassLoader extends ClassLoader {
     private final ClassFilter filter = new MixinContainerClassFilter();
 

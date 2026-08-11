@@ -9,7 +9,7 @@ import copper.loader.util.*;
  * <p>Initialization sequence:
  * <ol>
  *   <li>{@link #init()} — create {@link Vars}, {@link Game}, {@link Mods}, then discover and read all mods.</li>
- *   <li>{@link #launch(String[])} — initialize the game, pre-init and init all mods, then launch the game.</li>
+ *   <li>{@link #launch()} — initialize the game, init and bootstrap all mods, then return the game main class.</li>
  * </ol>
  */
 public class Loader {
@@ -31,11 +31,10 @@ public class Loader {
     }
 
     /**
-     * Launches the loaded game with the given arguments.
+     * Initializes the game container, inits and bootstraps all mods,
+     * and returns the game's main class.
      *
-     * <p>This first initializes the game container, then pre-inits and inits all mods,
-     * and finally hands control to the game's main entry point.</p>
-     *
+     * @return the game's main class
      */
     public static Class<?> launch() {
         Log.info("Launching game.");

@@ -11,9 +11,9 @@ import java.util.*;
  * Holds information about the game being loaded (Mindustry).
  *
  * <p>On construction, the game version is read from {@code version.properties}
- * and the platform variant (Desktop, Server, Android, iOS) is detected from
- * {@code META-INF/MANIFEST.MF} inside the game jar. Version format varies by
- * game release type (Release, Bleeding-Edge, or Custom).</p>
+ * and the platform variant (Desktop, Server, Android, iOS) is detected by
+ * probing the game container for the variant's main class bytecode.
+ * Version format varies by game release type (Release, Bleeding-Edge, or Custom).</p>
  */
 public class Game {
     public MixinContainer container;
@@ -71,6 +71,12 @@ public class Game {
         }
     }
 
+    /**
+     * Finds the game's main class for the detected variant.
+     *
+     * @return the main class
+     * @throws RuntimeException if the variant is unknown or the main class is not found
+     */
     public Class<?> getMainClass() {
         if (variant == Variant.Unknown)
             throw new RuntimeException("failed to get main class of unknown variant of game");
