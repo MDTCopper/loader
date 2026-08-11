@@ -34,7 +34,7 @@ public abstract class CMods {
      * Injects before {@code sortMods()} to ensure correct ordering.
      */
     @Inject(method = "load", at = @At(value = "INVOKE", target = "sortMods"))
-    void cLoadCopperMod(CallbackInfo ci) {
+    private void cLoadCopperMod(CallbackInfo ci) {
         Log.info("Loading copper mods.");
         Loader.mods.load();
         Seq<LoadedCopperMod> loadedMods = new Seq<>();
@@ -53,7 +53,7 @@ public abstract class CMods {
 
     /** Registers Copper extended packets for all enabled Copper mods after loading. */
     @Inject(method = "load", at = @At("RETURN"))
-    void cLoadRegisterExtendedPackets(CallbackInfo ci) {
+    private void cLoadRegisterExtendedPackets(CallbackInfo ci) {
         Vars.mods.eachEnabled(mod -> {
             if (mod.main instanceof CopperMod copperMod)
                 copperMod.registerPackets();
@@ -62,21 +62,21 @@ public abstract class CMods {
 
     /** Prevents mod removal from the in-game UI. */
     @Inject(method = "removeMod", at = @At("HEAD"), cancellable = true)
-    void cBanRemoveMod(Mods.LoadedMod mod, CallbackInfo ci) {
+    private void cBanRemoveMod(Mods.LoadedMod mod, CallbackInfo ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.remove"));
         ci.cancel();
     }
 
     /** Prevents enabling/disabling mods from the in-game UI. */
     @Inject(method = "setEnabled", at = @At("HEAD"), cancellable = true)
-    void cBanSetModEnabled(Mods.LoadedMod mod, boolean enabled, CallbackInfo ci) {
+    private void cBanSetModEnabled(Mods.LoadedMod mod, boolean enabled, CallbackInfo ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.set-enable"));
         ci.cancel();
     }
 
     /** Prevents importing mods from the in-game UI; returns a fake loaded mod instead. */
     @Inject(method = "importMod(Larc/files/Fi;Z)Lmindustry/mod/Mods$LoadedMod;", at = @At("HEAD"), cancellable = true)
-    void cBanImportMod(Fi file, boolean forceEnable, CallbackInfoReturnable<Mods.LoadedMod> ci) {
+    private void cBanImportMod(Fi file, boolean forceEnable, CallbackInfoReturnable<Mods.LoadedMod> ci) {
         Vars.ui.showErrorMessage(CoreMod.bundles.get("notice.mod.import"));
         Mods.ModMeta fakeMeta = new Mods.ModMeta();
         fakeMeta.name = file.nameWithoutExtension();
@@ -90,7 +90,7 @@ public abstract class CMods {
 
     /** Redirects the config folder for Copper mods to the Copper data directory. */
     @Inject(method = "getConfigFolder", at = @At("HEAD"), cancellable = true)
-    void cReplaceCopperConfigFolder(Mod mod, CallbackInfoReturnable<Fi> ci) {
+    private void cReplaceCopperConfigFolder(Mod mod, CallbackInfoReturnable<Fi> ci) {
         Mods.ModMeta meta = metas.get(mod.getClass());
         if (meta instanceof CopperModMeta copper)
             ci.setReturnValue(Copper.getModsDataFolder().child(copper.copperMod.id.replace(':', '-')));
@@ -98,7 +98,7 @@ public abstract class CMods {
 
     /** Forces mod loading (overrides the {@code skipModLoading} setting). */
     @Inject(method = "skipModLoading", at = @At("RETURN"), cancellable = true)
-    void cForceModLoad(CallbackInfoReturnable<Boolean> ci) {
+    private void cForceModLoad(CallbackInfoReturnable<Boolean> ci) {
         ci.setReturnValue(false);
     }
 

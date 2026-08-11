@@ -222,7 +222,7 @@ public class MetaReaderV1 implements IMetaReader {
             mod.dependency.addAll(parseModDescriptors(meta.get("conflicts").asObject()));
 
         if (meta.containsKey("exports")) {
-            // Export rules matched top to bottom; system auto-appends "include author.modname.*" at the end
+            // Export rules matched top to bottom; system auto-appends "include author.modname.*" at the end in Mod.resolve
             Jval.JsonArray exports = meta.get("exports").asArray();
             for (var item : exports)
                 mod.exportRule.add(item.asString());
