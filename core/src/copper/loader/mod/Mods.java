@@ -1,8 +1,8 @@
-package copper.loader;
+package copper.loader.mod;
 
+import copper.loader.*;
 import copper.loader.container.info.*;
 import copper.loader.func.*;
-import copper.loader.mod.*;
 import copper.loader.util.*;
 import java.io.*;
 import java.util.*;
@@ -22,13 +22,15 @@ public class Mods {
             = {"copper.mod.json", "copper.mod.hjson"};
 
     private Map<String, Mod> mod;
-    private ArrayList<Mod> orderedMod;
+    private List<Mod> orderedMod;
     private Map<String, Mod> pathMap;
+    private State state;
 
     public Mods() {
         mod = new HashMap<>();
         orderedMod = new ArrayList<>();
         pathMap = new HashMap<>();
+        state = State.None;
     }
 
     /**
@@ -104,8 +106,8 @@ public class Mods {
         int mdtModCnt = orderedMod.size();
 
         Map<Mod, Integer> inDegCnt = new HashMap<>();
-        Map<Mod, ArrayList<Mod>> outDeg = new HashMap<>();
-        Cons2<ArrayList<Mod>, String> sort = (list, type) -> {
+        Map<Mod, List<Mod>> outDeg = new HashMap<>();
+        Cons2<List<Mod>, String> sort = (list, type) -> {
             int lastSorted = 0, sorted = 0;
             while (true) {
                 for (var entry : inDegCnt.entrySet()) {
@@ -190,6 +192,8 @@ public class Mods {
      * Discovers all mods, sorts them by dependency order, and resolves dependencies.
      */
     public void read() {
+        if (state != State.None)
+            return;
         Loader.platform.extractCoreMod();
         readMod(Loader.vars.copperModFolder, copperMetaFiles, Mod::new);
         readMod(Loader.vars.gameModFolder, mindustryMetaFiles, MindustryMod::new);
@@ -207,26 +211,44 @@ public class Mods {
             Log.debug("Mods list: ");
             eachMod(mod -> Log.debug("  -> " + mod.id + " " + mod.version.toString()));
         }
-    }
-
-    /**
-     * Calls {@link Mod#preInit()} on every mod in load order.
-     */
-    public void preInit() {
-        eachMod(Mod::preInit);
+        state = State.Read;
     }
 
     /**
      * Calls {@link Mod#init()} on every mod in load order.
      */
     public void init() {
+        if (state != State.Read)
+            return;
         eachMod(Mod::init);
+        state = State.Initialised;
+    }
+
+    /**
+     * Calls {@link Mod#bootstrap()} on every mod in load order.
+     */
+    public void bootstrap() {
+        if (state != State.Initialised)
+            return;
+        eachMod(Mod::bootstrap);
+        state = State.Bootstrapped;
     }
 
     /**
      * Calls {@link Mod#load()} on every mod in load order.
      */
     public void load() {
+        if (state != State.Bootstrapped)
+            return;
         eachMod(Mod::load);
+        state = State.Loaded;
+    }
+
+    private enum State {
+        None,
+        Read,
+        Initialised,
+        Bootstrapped,
+        Loaded
     }
 }

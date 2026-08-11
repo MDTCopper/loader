@@ -20,7 +20,7 @@ public class DependencyInfo {
         extraImport = new ClassFilter();
     }
 
-    public DependencyInfo(Container container, String extraImportRule) {
+    public DependencyInfo(MixinContainer container, String extraImportRule) {
         this.container = container;
         extraImport = new ClassFilter();
         extraImport.addRule(extraImportRule);

@@ -20,6 +20,6 @@ public class MixinEngineBootstrap implements IMixinServiceBootstrap {
 
     @Override
     public void bootstrap() {
-        Log.info("mixin:" + MixinEngine.id, "Copper mixin engine bootstrap.");
+        Log.info("mixin:" + MixinEngine.id, "Copper mixin engine bootstrapping.");
     }
 }

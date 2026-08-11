@@ -27,7 +27,7 @@ public class Structs {
     }
 
     /** Swaps two elements in an ArrayList. */
-    public static <T> void swap(ArrayList<T> arr, int a, int b) {
+    public static <T> void swap(List<T> arr, int a, int b) {
         T t = arr.get(a);
         arr.set(a, arr.get(b));
         arr.set(b, t);

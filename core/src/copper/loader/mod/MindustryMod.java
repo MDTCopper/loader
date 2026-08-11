@@ -20,7 +20,7 @@ public class MindustryMod extends Mod {
             = {"mod.json", "mod.hjson", "plugin.json", "plugin.hjson"};
     private static final Map<String, DependencyInfo> dependencyInfoCache = new HashMap<>();
 
-    public MindustryMod(File baseFile) {
+    MindustryMod(File baseFile) {
         super(baseFile);
     }
 
@@ -80,18 +80,18 @@ public class MindustryMod extends Mod {
 
     /** No-op: Bootstrap method is only for copper mods. */
     @Override
-    public void init() {}
+    void bootstrap() {}
 
     /** No-op: Mindustry mods are loaded by the game itself. */
     @Override
-    public void load() {}
+    void load() {}
 
     /**
      * Makes every other Mindustry mod visible to this mod.
      * This replicates the behaviour of {@code mindustry.mod.ModClassLoader}.
      */
     @Override
-    public void resolve() {
+    void resolve() {
         Loader.mods.eachMod(m -> {
             if (!(m instanceof MindustryMod) || m.id.equals(this.id))
                 return;

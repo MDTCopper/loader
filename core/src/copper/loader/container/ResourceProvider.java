@@ -8,7 +8,7 @@ import java.util.*;
  */
 public class ResourceProvider {
     /** Ordered list of resource backends. */
-    public ArrayList<IResource> resources;
+    public List<IResource> resources;
 
     public ResourceProvider() {
         resources = new ArrayList<>();

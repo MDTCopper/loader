@@ -11,7 +11,7 @@ import java.util.*;
  * the first matching rule determines the result. If no rule matches, the default is deny.</p>
  */
 public class ClassFilter {
-    protected ArrayList<Rule> rules;
+    protected List<Rule> rules;
 
     public ClassFilter() {
         rules = new ArrayList<>();

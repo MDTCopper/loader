@@ -1,5 +1,6 @@
 package copper.loader;
 
+import copper.loader.mod.*;
 import copper.loader.util.*;
 
 /**
@@ -35,13 +36,12 @@ public class Loader {
      * <p>This first initializes the game container, then pre-inits and inits all mods,
      * and finally hands control to the game's main entry point.</p>
      *
-     * @param args command-line arguments forwarded to the game
      */
-    public static void launch(String[] args) {
+    public static Class<?> launch() {
         Log.info("Launching game.");
         game.init();
-        mods.preInit();
         mods.init();
-        game.launch(args);
+        mods.bootstrap();
+        return game.getMainClass();
     }
 }

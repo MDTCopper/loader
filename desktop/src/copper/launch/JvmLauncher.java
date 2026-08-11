@@ -5,7 +5,6 @@ import copper.loader.container.*;
 import copper.loader.mod.*;
 import copper.loader.util.*;
 import java.io.*;
-import java.util.*;
 
 /**
  * JVM (desktop) launcher entry point for CopperLoader.
@@ -38,21 +37,23 @@ public class JvmLauncher {
             Loader.init();
 
             for (String id : parser.getOptionValues("mixin-log")) {
-                Container c = findContainer(id);
-                if (c instanceof JvmContainer container)
+                MixinContainer c = findContainer(id);
+                if (c instanceof JvmMixinContainer container)
                     container.setMixinLogEnabled(true);
             }
 
             for (String desc : parser.getOptionValues("mixin-flag")) {
                 String[] parts = desc.split(",");
-                Container c = findContainer(parts[0]);
-                if (c instanceof JvmContainer container) {
+                MixinContainer c = findContainer(parts[0]);
+                if (c instanceof JvmMixinContainer container) {
                     for (int i = 1; i < parts.length; i++)
                         container.addMixinFlag(parts[i].trim());
                 }
             }
 
-            Loader.launch(parser.getPositionalArgs().toArray(String[]::new));
+            Class<?> main = Loader.launch();
+            main.getDeclaredMethod("main", String[].class)
+                    .invoke(null, (Object) parser.getPositionalArgs().toArray(String[]::new));
         } catch (Throwable e) {
             Log.error(e.getMessage());
             e.printStackTrace();
@@ -64,7 +65,7 @@ public class JvmLauncher {
      * Finds a container by id. Returns the game container for {@code "mindustry"},
      * otherwise looks up a Copper mod by id.
      */
-    private static Container findContainer(String id) {
+    private static MixinContainer findContainer(String id) {
         if (id.equals("mindustry"))
             return Loader.game.container;
         Mod mod = Loader.mods.getModById(id);

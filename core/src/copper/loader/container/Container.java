@@ -3,23 +3,11 @@ package copper.loader.container;
 import copper.loader.container.info.*;
 import java.util.*;
 
-/**
- * A pluggable classpath container providing class loading, resource access,
- * and dependency traversal between containers.
- *
- * <p>Each container owns a set of {@link copper.loader.container.info.DependencyInfo dependencies}
- * (other containers it can search for classes), a set of
- * {@link copper.loader.container.info.MixinInfo mixin configs} (bytecode transformations
- * to apply), a {@link ResourceProvider}, and a {@link ClassFilter} controlling export
- * visibility.</p>
- */
 public abstract class Container {
     /** Debug identifier (e.g. mod id). */
     public String id;
     /** Dependencies of this container. */
-    public ArrayList<DependencyInfo> dependency;
-    /** Mixin configurations targeting this container. */
-    public ArrayList<MixinInfo> mixin;
+    public List<DependencyInfo> dependency;
     /** Resource provider for reading files. */
     public ResourceProvider resource;
     /** Filter controlling public visibility of this container's own classes. */
@@ -28,13 +16,36 @@ public abstract class Container {
     public Container() {
         id = "unnamed";
         dependency = new ArrayList<>();
-        mixin = new ArrayList<>();
         resource = new ResourceProvider();
         export = new ClassFilter();
     }
 
-    /** Called after construction to initialize this container (e.g., bootstrap mixin engine). */
+    /** Called after all runtime required info is resolved. */
     public void init() {}
+
+    public byte[] getAccessibleBytecode(String name) {
+        byte[] code = null;
+        // Search dependency containers for transformed bytecode.
+        for (DependencyInfo info : dependency) {
+            if (info.extraImport.check(name))
+                code = info.container.getOwnBytecode(name);
+            else
+                code = info.container.getPublicOwnBytecode(name);
+            if (code != null)
+                break;
+        }
+        return code;
+    }
+
+    public byte[] getOwnBytecode(String name) {
+        return resource.get(name.replace('.', '/') + ".class");
+    }
+
+    public byte[] getPublicOwnBytecode(String name) {
+        if (export.check(name))
+            return getOwnBytecode(name);
+        return null;
+    }
 
     /**
      * Finds a class accessible from this container.
@@ -45,22 +56,13 @@ public abstract class Container {
      */
     public Class<?> getAccessibleClass(String name) {
         Class<?> c = null;
-        // Search mixin target containers first.
-        for (MixinInfo info : mixin) {
-            c = info.container.loadPublicOwnClass(name);
+        for (DependencyInfo info : dependency) {
+            if (info.extraImport.check(name))
+                c = info.container.loadOwnClass(name);
+            else
+                c = info.container.loadPublicOwnClass(name);
             if (c != null)
                 break;
-        }
-        // Fall back to dependency containers.
-        if (c == null) {
-            for (DependencyInfo info : dependency) {
-                if (info.extraImport.check(name))
-                    c = info.container.loadOwnClass(name);
-                else
-                    c = info.container.loadPublicOwnClass(name);
-                if (c != null)
-                    break;
-            }
         }
         return c;
     }

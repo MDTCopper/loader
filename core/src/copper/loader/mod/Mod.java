@@ -12,15 +12,15 @@ import java.nio.charset.*;
 import java.util.*;
 
 /**
- * A Copper-native mod, backed by a {@link Container} and described by a
+ * A Copper-native mod, backed by a {@link MixinContainer} and described by a
  * {@code copper.mod.json} (or {@code .hjson}) meta file.
  *
  * <p>Lifecycle:<br>
  * construction reads the meta file and creates the container;<br>
  * {@link #resolve()} wires dependencies, conflicts, export rules, and mixin configs
  * (called during {@link Mods#read});<br>
- * {@link #preInit()} initializes the container (classloader + mixin);<br>
- * {@link #init()} invokes the mod's static {@code bootstrap()} method;<br>
+ * {@link #init()} initializes the container (classloader + mixin);<br>
+ * {@link #bootstrap()} invokes the mod's static {@code bootstrap()} method;<br>
  * {@link #load()} instantiates the main class.</p>
  */
 public class Mod {
@@ -49,20 +49,20 @@ public class Mod {
     public String extraMeta;
 
     /** Declared dependency descriptors (includes conflicts). */
-    public ArrayList<ModDescriptor> dependency;
+    public List<ModDescriptor> dependency;
     /** Declared conflict descriptors. */
-    public ArrayList<ModDescriptor> conflict;
+    public List<ModDescriptor> conflict;
     /** Mixin configuration descriptors. */
-    public ArrayList<MixinDescriptor> mixin;
+    public List<MixinDescriptor> mixin;
     /** Own-class export rules ({@code include/exclude <pattern>}). */
-    public ArrayList<String> exportRule;
+    public List<String> exportRule;
     /** Per-dependency import rules ({@code depId → ["include ...", ...]}). */
-    public Map<String, ArrayList<String>> importRule;
+    public Map<String, List<String>> importRule;
 
     /** The mod file on disk (jar or directory). */
     public File file;
     /** The class/resource container for this mod. */
-    public Container container;
+    public MixinContainer container;
     /** The instantiated main class instance (set after {@link #load()}). */
     public Object instance;
 
@@ -71,7 +71,7 @@ public class Mod {
      *
      * @param baseFile the mod file (jar/zip or directory)
      */
-    public Mod(File baseFile) {
+    Mod(File baseFile) {
         id = author = name = description = main = repo = "";
         extraMeta = "{}";
         hidden = false;
@@ -118,18 +118,18 @@ public class Mod {
     /**
      * Initializes the mod container (classloader, mixin engine).
      */
-    public void preInit() {
+    void init() {
         try {
             container.init();
         } catch (Exception e) {
-            throw new RuntimeException("failed to pre-init mod: " + id, e);
+            throw new RuntimeException("failed to init mod: " + id, e);
         }
     }
 
     /**
      * Invokes the mod main class's static {@code init()} method, if present.
      */
-    public void init() {
+    void bootstrap() {
         try {
             Class<?> main = container.loadPublicOwnClass(this.main);
             if (main == null)
@@ -140,14 +140,14 @@ public class Mod {
                 init.invoke(null);
         } catch (NoSuchMethodException ignored) {
         } catch (Throwable e) {
-            throw new RuntimeException("failed to init mod: " + id, e);
+            throw new RuntimeException("failed to bootstrap mod: " + id, e);
         }
     }
 
     /**
      * Instantiates the mod main class via its no-arg constructor.
      */
-    public void load() {
+    void load() {
         if (instance != null)
             return;
         try {
@@ -162,12 +162,11 @@ public class Mod {
 
     /**
      * Validates dependencies and conflicts, wires export/import rules, and registers mixin configs.
-     * The Copper core mod container is added later in {@link Mods#resolveMod}.
+     * The containers of core mod, game and loader are added in {@link Mods#resolveMod} before calling this.
      */
-    public void resolve() {
+    void resolve() {
         for (String rule : exportRule)
             container.export.addRule(rule);
-        container.export.addRule("include " + id.replace(':', '.') + ".*");
 
         for (ModDescriptor dep : dependency) {
             if (dep.id.equals("mindustry")) {
@@ -211,7 +210,7 @@ public class Mod {
         }
 
         for (var mixin : mixin) {
-            Container target = null;
+            MixinContainer target = null;
             Version version = null;
             if (mixin.id.equals("mindustry")) {
                 target = Loader.game.container;

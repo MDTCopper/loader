@@ -53,47 +53,7 @@ public class JvmPlatform implements IPlatform {
      */
     @Override
     public IMixinEngine createMixinEngine() {
-        ClassLoader cl = new ClassLoader(JvmLauncher.class.getClassLoader()) {
-            private final ClassFilter filter = new MixinContainerClassFilter();
-
-            @Override
-            protected Class<?> findClass(String name) throws ClassNotFoundException {
-                try (InputStream is = getResourceAsStream(name.replace('.', '/') + ".class")) {
-                    if (is == null)
-                        throw new ClassNotFoundException(name);
-                    byte[] code = is.readAllBytes();
-                    return defineClass(name, code, 0, code.length);
-                } catch (Throwable e) {
-                    throw new ClassNotFoundException(name);
-                }
-            }
-
-            @Override
-            protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                synchronized (getClassLoadingLock(name)) {
-                    if (filter.check(name)) {
-                        Class<?> c = findLoadedClass(name);
-                        if (c == null) {
-                            try {
-                                c = findClass(name);
-                            } catch (Throwable ignored) {}
-                        }
-                        if (c == null)
-                            throw new ClassNotFoundException(name);
-                        if (resolve)
-                            resolveClass(c);
-                        return c;
-                    } else {
-                        return getParent().loadClass(name);
-                    }
-                }
-            }
-
-            @Override
-            public Enumeration<URL> getResources(String name) throws IOException {
-                return getParent().getResources(name);
-            }
-        };
+        ClassLoader cl = new JvmMixinClassLoader();
         try {
             Class<?> c = cl.loadClass("copper.loader.mixin.MixinEngine");
             return (IMixinEngine) c.getDeclaredMethod("getInstance").invoke(null);
@@ -104,27 +64,18 @@ public class JvmPlatform implements IPlatform {
     }
 
     @Override
-    public Class<?> loadSystemClass(String name) {
-        try {
-            return JvmLauncher.class.getClassLoader().loadClass(name);
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    @Override
-    public Container createModContainer(File file) {
+    public MixinContainer createModContainer(File file) {
         return createJarContainer(file);
     }
 
     @Override
-    public Container createGameContainer() {
+    public MixinContainer createGameContainer() {
         return createJarContainer(gameJar);
     }
 
     @Override
     public Container createLoaderContainer() {
-        return new ForwardedJvmContainer(Loader.class.getClassLoader());
+        return new JvmDelegatedContainer(Loader.class.getClassLoader());
     }
 
     @Override
@@ -132,10 +83,10 @@ public class JvmPlatform implements IPlatform {
         return gameData;
     }
 
-    /** Creates a {@link JvmContainer} backed by a zip/jar file. */
-    private Container createJarContainer(File file) {
+    /** Creates a {@link JvmMixinContainer} backed by a zip/jar file. */
+    private MixinContainer createJarContainer(File file) {
         try {
-            Container container = new JvmContainer();
+            MixinContainer container = new JvmMixinContainer();
             ZipFile zip = new ZipFile(file);
             container.resource.resources.add(new ZipResource(zip));
             return container;

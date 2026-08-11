@@ -1,12 +1,13 @@
 package copper.loader.mixin;
 
+import copper.loader.container.*;
 import copper.loader.func.*;
 
 /**
  * The mixin engine interface.
  *
  * <p>Provides bytecode transformation via the SpongePowered Mixin framework.
- * Each {@link copper.loader.container.JvmContainer} has its own engine instance.</p>
+ * Each {@link MixinContainer} has its own engine instance.</p>
  */
 public interface IMixinEngine {
     /** Sets the bytecode provider used to resolve class bytes during transformation. */

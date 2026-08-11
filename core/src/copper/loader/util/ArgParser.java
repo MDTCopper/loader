@@ -12,8 +12,8 @@ import java.util.*;
 public class ArgParser {
     private final String programName;
     private final String description;
-    private final ArrayList<Option> options = new ArrayList<>();
-    private final ArrayList<String> positionalArgs = new ArrayList<>();
+    private final List<Option> options = new ArrayList<>();
+    private final List<String> positionalArgs = new ArrayList<>();
     /** Maps option name (short or long) to all values provided. */
     private final Map<String, ArrayList<String>> optionValuesMap = new HashMap<>();
     /** Options that were present on the command line (for flags). */

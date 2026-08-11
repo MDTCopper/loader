@@ -32,22 +32,14 @@ public interface IPlatform {
     IMixinEngine createMixinEngine();
 
     /**
-     * Loads a system class (from the platform's bootstrap or application classloader).
-     *
-     * @param name fully qualified class name
-     * @return the loaded class, or {@code null} if not found
-     */
-    Class<?> loadSystemClass(String name);
-
-    /**
      * Creates a container for a mod file (jar/zip or directory).
      */
-    Container createModContainer(File file);
+    MixinContainer createModContainer(File file);
 
     /**
      * Creates a container for the game jar.
      */
-    Container createGameContainer();
+    MixinContainer createGameContainer();
 
     /**
      * Creates a container representing the loader's own classpath.

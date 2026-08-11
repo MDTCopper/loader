@@ -8,15 +8,6 @@ import java.util.*;
 
 /**
  * Holds all runtime paths and loader metadata.
- *
- * <p>Directory layout under the game data folder:
- * <pre>
- * {gameData}/
- * ├── copper/           ← loaderDataFolder
- * │   ├── mods/         ← copperModFolder
- * │   └── datas/        ← copperModDataFolder
- * └── mods/             ← gameModFolder (standard Mindustry mods)
- * </pre>
  */
 public class Vars {
     /** The game's data directory (e.g., {@code ~/.mindustry}). */
@@ -45,6 +36,7 @@ public class Vars {
         loaderContainer = Loader.platform.createLoaderContainer();
         loaderContainer.id = "loader";
         loaderContainer.export.addRule("include *");
+        loaderContainer.init();
 
         try {
             String ver = new String(loaderContainer.resource.get("version.properties"), StandardCharsets.UTF_8);

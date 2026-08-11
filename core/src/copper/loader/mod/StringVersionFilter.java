@@ -10,9 +10,9 @@ import java.util.*;
  */
 public class StringVersionFilter implements IVersionFilter {
     /** List of accepted version strings. */
-    public ArrayList<String> versions;
+    public List<String> versions;
 
-    public StringVersionFilter(ArrayList<String> versions) {
+    public StringVersionFilter(List<String> versions) {
         this.versions = versions;
     }
 

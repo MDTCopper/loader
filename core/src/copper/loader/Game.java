@@ -16,7 +16,7 @@ import java.util.*;
  * game release type (Release, Bleeding-Edge, or Custom).</p>
  */
 public class Game {
-    public Container container;
+    public MixinContainer container;
     public SemanticVersion version;
     public Type type;
     public Variant variant;
@@ -49,15 +49,11 @@ public class Game {
             }
 
             variant = Variant.Unknown;
-            byte[] manifestBytes = container.resource.get("META-INF/MANIFEST.MF");
-            if (manifestBytes != null) {
-                String manifest = new String(manifestBytes, StandardCharsets.UTF_8);
-                for (Variant v : Variant.values()) {
-                    if (v.mainClass.isEmpty())
-                        continue;
-                    if (manifest.contains(v.mainClass))
-                        variant = v;
-                }
+            for (Variant v : Variant.values()) {
+                if (v.mainClass.isEmpty())
+                    continue;
+                if (container.getOwnBytecode(v.mainClass) != null)
+                    variant = v;
             }
         } catch (Throwable e) {
             throw new RuntimeException("failed to read game", e);
@@ -75,20 +71,13 @@ public class Game {
         }
     }
 
-    /**
-     * Launches the game by invoking the detected variant's {@code main} method.
-     *
-     * @param args command-line arguments passed to the game
-     */
-    public void launch(String[] args) {
+    public Class<?> getMainClass() {
         if (variant == Variant.Unknown)
-            throw new RuntimeException("failed to launch unknown variant of game");
+            throw new RuntimeException("failed to get main class of unknown variant of game");
         Class<?> main = container.loadOwnClass(variant.mainClass);
-        try {
-            main.getDeclaredMethod("main", String[].class).invoke(null, (Object) args);
-        } catch (Throwable e) {
-            throw new RuntimeException("failed to launch game", e);
-        }
+        if (main == null)
+            throw new RuntimeException("failed to find game main class: " + variant.mainClass);
+        return main;
     }
 
     /** Game release type. */
