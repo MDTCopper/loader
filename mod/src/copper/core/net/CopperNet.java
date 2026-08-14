@@ -54,7 +54,7 @@ public class CopperNet {
     /**
      * Sends a custom packet wrapped in an {@link ExtendedPacket}.
      */
-    public void send(Packet packet, boolean reliable) {
+    public static void send(Packet packet, boolean reliable) {
         ExtendedPacket wrap = new ExtendedPacket();
         wrap.target = packet;
         Vars.net.send(wrap, reliable);
