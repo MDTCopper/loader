@@ -1,6 +1,8 @@
 package copper.loader.util;
 
 import copper.loader.func.*;
+import java.io.*;
+import java.nio.charset.*;
 
 /**
  * Logging utility with colorized output and configurable log level.
@@ -16,6 +18,7 @@ public class Log {
 
     private static Level level = Level.INFO;
     private static Cons2<Level, String> backend = Backend::plain;
+    private static Writer fileWriter = null;
 
     private static final String RESET = "\u001B[0m";
     private static final String BLUE = "\u001B[34m";
@@ -41,7 +44,31 @@ public class Log {
     public static void log(Level level, String msg) {
         if (level.ordinal() <= Log.level.ordinal()) {
             backend.get(level, " " + msg);
+            if (fileWriter != null) {
+                try {
+                    fileWriter.write(prefixForLevel(level) + " " + msg + "\n");
+                    fileWriter.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
+    }
+
+    /** Logs to file. */
+    public static void setOutputFile(File file) {
+        try {
+            file.getParentFile().mkdirs();
+            FileOutputStream out = new FileOutputStream(file, false);
+            fileWriter = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("failed to setup log output file: " + file.getPath(), e);
+        }
+    }
+
+    /** Logs messages form other sources to file. */
+    public static Writer getLogFileWriter() {
+        return fileWriter;
     }
 
     /** Logs a message with a tag. */

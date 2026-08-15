@@ -2,6 +2,8 @@ package copper.loader;
 
 import copper.loader.container.*;
 import copper.loader.mod.*;
+import copper.loader.util.*;
+
 import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
@@ -46,5 +48,9 @@ public class Vars {
         } catch (Throwable e) {
             throw new RuntimeException("failed to read loader version", e);
         }
+    }
+
+    public void setupFileLogger() {
+        Log.setOutputFile(new File(gameDataFolder, "last_log.txt"));
     }
 }

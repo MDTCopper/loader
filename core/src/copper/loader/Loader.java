@@ -25,6 +25,7 @@ public class Loader {
         vars = new Vars();
         game = new Game();
         mods = new Mods();
+        vars.setupFileLogger();
         Log.info("CopperLoader v" + vars.loaderVersion.toString());
         Log.info("Game info: " + game.variant.name() + " " + game.type.name() + " " + game.version.toString());
         mods.read();
