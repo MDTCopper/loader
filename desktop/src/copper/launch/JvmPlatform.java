@@ -41,7 +41,7 @@ public class JvmPlatform implements IPlatform {
         byte[] data = Loader.vars.loaderContainer.resource.get("core-mod.jar");
         if (data == null)
             throw new RuntimeException("no core mod found in package");
-        JvmPlatform.extractFile(data, target);
+        extractFile(data, target);
     }
 
     /**
@@ -60,7 +60,6 @@ public class JvmPlatform implements IPlatform {
         } catch (Throwable e) {
             throw new RuntimeException("failed to create mixin engine", e);
         }
-
     }
 
     @Override
@@ -99,7 +98,7 @@ public class JvmPlatform implements IPlatform {
      * Extracts a byte array to a file, but only if the file doesn't
      * already exist with the same content.
      */
-    private static void extractFile(byte[] data, File file) {
+    private void extractFile(byte[] data, File file) {
         try (var fis = new FileInputStream(file)) {
             byte[] curr = fis.readAllBytes();
             if (Arrays.equals(data, curr))

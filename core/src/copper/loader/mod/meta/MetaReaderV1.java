@@ -103,7 +103,7 @@ import java.util.*;
  *   <li>Type: Boolean</li>
  *   <li>Default: {@code false}</li>
  *   <li>Whether this mod is hidden. Hidden mods are server-side or client-side only
- *       and cannot register new content (blocks, items, etc.).</li>
+ *       and cannot register new content (blocks, items, etc.) and network packet.</li>
  * </ul>
  *
  * <h5>{@code repo}</h5>

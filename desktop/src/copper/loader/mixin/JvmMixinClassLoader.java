@@ -2,7 +2,6 @@ package copper.loader.mixin;
 
 import copper.launch.*;
 import copper.loader.container.*;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -15,10 +14,11 @@ import java.util.*;
  * framework and Copper's mixin integration classes from the rest of the system.</p>
  */
 public class JvmMixinClassLoader extends ClassLoader {
-    private final ClassFilter filter = new MixinContainerClassFilter();
+    private final ClassFilter filter;
 
     public JvmMixinClassLoader() {
         super(JvmPlatform.class.getClassLoader());
+        filter = new MixinContainerClassFilter();
     }
 
     @Override
