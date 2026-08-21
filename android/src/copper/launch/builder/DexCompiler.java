@@ -10,7 +10,7 @@ import java.util.function.*;
 
 public class DexCompiler {
     private String id;
-    private Map<String, byte[]> bytecode;
+    private final Map<String, byte[]> bytecode;
     private List<ProgramResource> source;
     private D8Command.Builder builder;
 
@@ -94,7 +94,9 @@ public class DexCompiler {
             if (name.startsWith("L") && name.endsWith(";"))
                 name = name.substring(1, name.length() - 1);
             name = name.replace('/', '.');
-            bytecode.put(name, data.copyByteData());
+            synchronized (bytecode) {
+                bytecode.put(name, data.copyByteData());
+            }
         }
 
         @Override

@@ -7,7 +7,7 @@ import java.util.*;
 
 public class DexMerger {
     private String id;
-    private List<byte[]> bytecode;
+    private final List<byte[]> bytecode;
     private D8Command.Builder builder;
 
     public DexMerger() {
@@ -40,7 +40,9 @@ public class DexMerger {
     private class DexConsumer implements DexIndexedConsumer {
         @Override
         public void accept(int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
-            bytecode.add(data.copyByteData());
+            synchronized (bytecode) {
+                bytecode.add(data.copyByteData());
+            }
         }
 
         @Override

@@ -2,6 +2,7 @@ package copper.launch;
 
 import copper.launch.asm.*;
 import copper.launch.builder.*;
+import copper.launch.util.*;
 import copper.loader.*;
 import copper.loader.container.*;
 import copper.loader.container.resource.*;
@@ -419,7 +420,12 @@ public class ArtBuilder {
                 String id = entry.getKey();
                 var code = entry.getValue();
                 File dexFile;
-                if (code == null) {
+
+                boolean buildLink = code == null ||
+                        (id.equals("mindustry") && Loader.game.container.mixin.size() == 1 &&
+                                Loader.game.container.mixin.get(0).container.id.equals("copper:core"));
+
+                if (buildLink) {
                     Version version = id.equals("mindustry") ?
                             Loader.game.version : Loader.mods.getModById(id).version;
                     dexFile = dexCache.getPackedBaseDexFile(id, version.toString());
@@ -437,7 +443,7 @@ public class ArtBuilder {
                     dex.build(dexFile);
                 }
 
-                if (code == null) {
+                if (buildLink) {
                     File link = dexCache.getRuntimeDexLink(id);
                     try (var fos = new FileOutputStream(link)) {
                         fos.write(dexFile.getName().getBytes(StandardCharsets.UTF_8));
