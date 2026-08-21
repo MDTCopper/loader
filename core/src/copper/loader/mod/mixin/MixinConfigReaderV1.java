@@ -1,5 +1,7 @@
 package copper.loader.mod.mixin;
 
+import copper.loader.container.*;
+import copper.loader.container.info.*;
 import copper.loader.mod.*;
 import copper.loader.util.*;
 
@@ -38,9 +40,10 @@ import copper.loader.util.*;
  */
 public class MixinConfigReaderV1 implements IMixinConfigReader {
     @Override
-    public String read(Version version, Jval obj) {
+    public MixinInfo read(Container container, Version version, Jval obj) {
         Jval.JsonMap mixins = obj.remove("mixins").asObject();
         Jval mergedMixins = Jval.newArray();
+        MixinInfo info = new MixinInfo();
 
         for (var entry : mixins.entrySet()) {
             IVersionFilter filter = null;
@@ -56,16 +59,22 @@ public class MixinConfigReaderV1 implements IMixinConfigReader {
                 if (value.isArray()) {
                     // Array entries are merged individually (deduplicated)
                     for (var v : value.asArray()) {
-                        if (!mergedMixins.asArray().contains(v))
+                        if (!mergedMixins.asArray().contains(v)) {
                             mergedMixins.add(v);
+                            info.mixinName.add(v.asString());
+                        }
                     }
                 } else if (!mergedMixins.asArray().contains(value)) {
                     mergedMixins.add(value);
+                    info.mixinName.add(value.asString());
                 }
             }
         }
 
         obj.add("mixins", mergedMixins);
-        return obj.toString(Jval.Jformat.plain);
+        info.container = container;
+        info.config = obj.toString(Jval.Jformat.plain);
+        info.packageName = obj.getString("package");
+        return info;
     }
 }

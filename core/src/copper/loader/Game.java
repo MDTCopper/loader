@@ -52,8 +52,10 @@ public class Game {
             for (Variant v : Variant.values()) {
                 if (v.mainClass.isEmpty())
                     continue;
-                if (container.getOwnBytecode(v.mainClass) != null)
-                    variant = v;
+                if (container.getOwnBytecode(v.mainClass) == null)
+                    continue;
+                variant = v;
+                break;
             }
         } catch (Throwable e) {
             throw new RuntimeException("failed to read game", e);
@@ -95,10 +97,10 @@ public class Game {
 
     /** Known game platform variants, each identified by its main class name. */
     public enum Variant {
-        Desktop("mindustry.desktop.DesktopLauncher"),
-        Server("mindustry.server.ServerLauncher"),
         Android("mindustry.android.AndroidLauncher"),
         IOS("mindustry.ios.IOSLauncher"),
+        Desktop("mindustry.desktop.DesktopLauncher"),
+        Server("mindustry.server.ServerLauncher"),
         Unknown("")
         ;
 

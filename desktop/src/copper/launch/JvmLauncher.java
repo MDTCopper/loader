@@ -27,6 +27,7 @@ public class JvmLauncher {
             parser.addFlag("d", "debug", "Enable debug log output", () -> Log.setLevel(Log.Level.DEBUG));
             parser.addFlag(null, "verbose", "Enable verbose log output", () -> Log.setLevel(Log.Level.VERBOSE));
             parser.addFlag("v", "version", "Display loader version", JvmLauncher::displayVersion);
+            parser.addFlag(null, "vanilla", "Load the vanilla game", () -> Loader.vars.vanillaMode = true);
             parser.addOption(null, "mixin-log", "Enable mixin log for mod", "modId");
             parser.addOption(null, "mixin-flag", "Add mixin flag for mod", "modId,flag1,flag2,...");
             parser.parse(args);
@@ -52,8 +53,11 @@ public class JvmLauncher {
                 }
             }
 
-            Class<?> main = Loader.launch();
-            main.getDeclaredMethod("main", String[].class)
+            Loader.launch();
+            Log.info("Launching game.");
+            Loader.mods.bootstrap();
+            Loader.game.getMainClass()
+                    .getDeclaredMethod("main", String[].class)
                     .invoke(null, (Object) parser.getPositionalArgs().toArray(String[]::new));
         } catch (Throwable e) {
             Log.error(e.getMessage());

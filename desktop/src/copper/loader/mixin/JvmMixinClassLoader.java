@@ -2,6 +2,8 @@ package copper.loader.mixin;
 
 import copper.launch.*;
 import copper.loader.container.*;
+import copper.loader.util.*;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -26,7 +28,7 @@ public class JvmMixinClassLoader extends ClassLoader {
         try (InputStream is = getResourceAsStream(name.replace('.', '/') + ".class")) {
             if (is == null)
                 throw new ClassNotFoundException(name);
-            byte[] code = is.readAllBytes();
+            byte[] code = Streams.readAllBytes(is);
             return defineClass(name, code, 0, code.length);
         } catch (Throwable e) {
             throw new ClassNotFoundException(name);

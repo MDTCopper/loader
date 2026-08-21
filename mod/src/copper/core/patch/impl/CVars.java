@@ -22,8 +22,8 @@ public class CVars {
         return new String[]{"[D]", "[I]", "[W]", "[E]", ""};
     }
 
-    @ModifyVariable(method = "loadFileLogger(Larc/files/Fi;)V", at = @At("STORE"), ordinal = 0)
-    private static Writer cReplaceLogFileWritter(Writer writer) {
+    @Redirect(method = "loadFileLogger(Larc/files/Fi;)V", at = @At(value = "INVOKE", target = "Larc/files/Fi;writer(Z)Ljava/io/Writer;"))
+    private static Writer cReplaceLogFileWritter(Fi file, boolean append) {
         Writer replaced = Log.getLogFileWriter();
         if (replaced != null) {
             return replaced;

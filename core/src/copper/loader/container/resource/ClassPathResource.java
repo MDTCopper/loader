@@ -1,5 +1,7 @@
 package copper.loader.container.resource;
 
+import copper.loader.util.*;
+
 /**
  * Reads resources from a {@link ClassLoader}'s classpath.
  */
@@ -16,7 +18,7 @@ public class ClassPathResource implements IResource {
     @Override
     public byte[] read(String path) {
         try (var stream = loader.getResourceAsStream(path)) {
-            return stream == null ? null : stream.readAllBytes();
+            return stream == null ? null : Streams.readAllBytes(stream);
         } catch (Throwable e) {
             return null;
         }

@@ -2,6 +2,8 @@ package copper.loader.container.info;
 
 import copper.loader.container.*;
 
+import java.util.*;
+
 /**
  * Holds a mixin configuration string and the container that owns it.
  */
@@ -11,12 +13,12 @@ public class MixinInfo {
     /** The raw mixin config JSON string. */
     public String config;
 
+    public String packageName;
+
+    public List<String> mixinName;
+
     public MixinInfo() {
         config = "{}";
-    }
-
-    public MixinInfo(Container container, String config) {
-        this.container = container;
-        this.config = config;
+        mixinName = new ArrayList<>();
     }
 }

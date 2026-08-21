@@ -39,6 +39,11 @@ public class ForwardedFi extends Fi {
     }
 
     @Override
+    public String absolutePath() {
+        return path();
+    }
+
+    @Override
     public InputStream read() {
         return target.read();
     }

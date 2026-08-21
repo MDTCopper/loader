@@ -1,0 +1,29 @@
+
+apply plugin: "java"
+
+sourceSets {
+    main {
+        java.srcDirs = ["src"]
+    }
+}
+
+dependencies {
+    if (Float.parseFloat(asmVersion) < 6) {
+        implementation "org.ow2.asm:asm-debug-all:$asmVersion"
+    }
+
+    implementation "org.ow2.asm:asm-tree:$asmVersion"
+    implementation "org.ow2.asm:asm-commons:$asmVersion"
+    implementation "org.ow2.asm:asm-util:$asmVersion"
+}
+
+tasks.register('genJrtStub', JavaExec) {
+    dependsOn classes
+    mainClass = 'copper.tools.RtStubGenerator'
+    classpath = sourceSets.main.runtimeClasspath
+    workingDir = '../android/res'
+
+    doFirst {
+        workingDir.mkdirs()
+    }
+}

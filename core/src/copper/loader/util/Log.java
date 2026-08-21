@@ -57,6 +57,8 @@ public class Log {
 
     /** Logs to file. */
     public static void setOutputFile(File file) {
+        if (fileWriter != null)
+            return;
         try {
             file.getParentFile().mkdirs();
             FileOutputStream out = new FileOutputStream(file, false);
@@ -84,6 +86,12 @@ public class Log {
     public static void log(Level level, String tag, String format, Object... args) {
         String formatted = String.format(format, args);
         log(level, tag, formatted);
+    }
+
+    public static void error(Throwable t) {
+        StringWriter writer = new StringWriter();
+        t.printStackTrace(new PrintWriter(writer));
+        error(t.toString());
     }
 
     public static void error(String msg) {
@@ -132,6 +140,18 @@ public class Log {
 
     public static void debug(String tag, String format, Object... args) {
         log(Level.DEBUG, tag, format, args);
+    }
+
+    public static void verbose(String msg) {
+        log(Level.VERBOSE, msg);
+    }
+
+    public static void verbose(String tag, String msg) {
+        log(Level.VERBOSE, tag, msg);
+    }
+
+    public static void verbose(String tag, String format, Object... args) {
+        log(Level.VERBOSE, tag, format, args);
     }
 
     static String colorForLevel(Level level) {

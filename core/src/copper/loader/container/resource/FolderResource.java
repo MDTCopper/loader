@@ -1,5 +1,7 @@
 package copper.loader.container.resource;
 
+import copper.loader.util.*;
+
 import java.io.*;
 
 /**
@@ -22,7 +24,7 @@ public class FolderResource implements IResource {
             File file = new File(folder, path);
             if (file.exists() && file.isFile()) {
                 try (var fis = new FileInputStream(file)) {
-                    return fis.readAllBytes();
+                    return Streams.readAllBytes(fis);
                 }
             }
             return null;

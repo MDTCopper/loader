@@ -12,7 +12,7 @@ import java.util.*;
  * {@link ClassFilter} controlling export visibility.</p>
  */
 public abstract class Container {
-    /** Debug identifier (e.g. mod id). */
+    /** Container identifier (e.g. mod id). */
     public String id;
     /** Dependencies of this container. */
     public List<DependencyInfo> dependency;

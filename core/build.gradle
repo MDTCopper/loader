@@ -12,10 +12,6 @@ dependencies {
     implementation "com.github.google.guava:guava:v21.0"
     implementation "com.google.code.gson:gson:2.8.9"
 
-    if (Float.parseFloat(asmVersion) < 6) {
-        api "org.ow2.asm:asm-debug-all:$asmVersion"
-    }
-
     api "org.ow2.asm:asm-tree:$asmVersion"
     api "org.ow2.asm:asm-commons:$asmVersion"
     api "org.ow2.asm:asm-util:$asmVersion"
@@ -23,14 +19,15 @@ dependencies {
     api "com.github.MDTCopper:Mixin:$mixinVersion"
 }
 
-task writeVersion {
+tasks.register('writeVersion') {
     doLast {
         def pfile = new File(project(':core').projectDir, 'res/version.properties')
         def props = new Properties()
 
         try {
             pfile.createNewFile()
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         if (pfile.exists()) {
             props.load(new FileInputStream(pfile))

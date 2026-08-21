@@ -7,7 +7,6 @@
     "mixins": {
       "*": [
         "CMods",
-        "CPlatform",
         "COS",
         "CVars",
         "CBeControl",

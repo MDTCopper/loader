@@ -2,6 +2,8 @@ package copper.loader;
 
 import copper.loader.container.*;
 import copper.loader.mixin.*;
+import copper.loader.mod.*;
+
 import java.io.*;
 
 /**
@@ -32,7 +34,7 @@ public interface IPlatform {
     IMixinEngine createMixinEngine();
 
     /**
-     * Creates a container for a mod file (jar/zip or directory).
+     * Creates a container for a mod.
      */
     MixinContainer createModContainer(File file);
 

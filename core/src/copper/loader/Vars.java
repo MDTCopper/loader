@@ -26,14 +26,27 @@ public class Vars {
     /** Container representing the loader's own classes. */
     public Container loaderContainer;
     /** The installed loader version, read from {@code version.properties}. */
-    public final SemanticVersion loaderVersion;
+    public SemanticVersion loaderVersion;
 
-    public Vars() {
+    public boolean vanillaMode = false;
+
+    public boolean writeFileLog = true;
+
+    private boolean inited = false;
+
+    public void init() {
+        if (inited)
+            return;
+
         gameDataFolder = Loader.platform.getGameDataFolder();
         loaderDataFolder = new File(gameDataFolder, "copper");
         gameModFolder = new File(gameDataFolder, "mods");
         copperModFolder = new File(loaderDataFolder, "mods");
         copperModDataFolder = new File(loaderDataFolder, "datas");
+
+        gameModFolder.mkdirs();
+        copperModFolder.mkdirs();
+        copperModDataFolder.mkdirs();
 
         loaderContainer = Loader.platform.createLoaderContainer();
         loaderContainer.id = "loader";
@@ -48,9 +61,11 @@ public class Vars {
         } catch (Throwable e) {
             throw new RuntimeException("failed to read loader version", e);
         }
+        inited = true;
     }
 
     public void setupFileLogger() {
-        Log.setOutputFile(new File(gameDataFolder, "last_log.txt"));
+        if (writeFileLog)
+            Log.setOutputFile(new File(gameDataFolder, "last_log.txt"));
     }
 }

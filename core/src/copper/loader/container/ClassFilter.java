@@ -26,6 +26,10 @@ public class ClassFilter {
         rules.add(new Rule(txt));
     }
 
+    public void addAllRules(ClassFilter filter) {
+        rules.addAll(filter.rules);
+    }
+
     /** Removes all rules. */
     public void clearRules() {
         rules.clear();
@@ -45,6 +49,12 @@ public class ClassFilter {
             if (rule.match(clazz))
                 return rule.type == Rule.Type.Include;
         return false;
+    }
+
+    public ClassFilter copy() {
+        ClassFilter filter = new ClassFilter();
+        filter.rules.addAll(rules);
+        return filter;
     }
 
     /** A single include/exclude rule. */

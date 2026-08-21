@@ -29,9 +29,9 @@ jar {
         exclude 'module-info.class', '**/module-info.class'
         exclude 'META-INF/maven/**'
     }
-    from(project(':mod').tasks.named('jar')) {
+    from (project(':mod').tasks.named('jar')) {
         rename { 'core-mod.jar' }
-        into('')
+        into ''
     }
     duplicatesStrategy = DuplicatesStrategy.WARN
 }

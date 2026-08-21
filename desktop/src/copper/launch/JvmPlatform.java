@@ -4,9 +4,9 @@ import copper.loader.*;
 import copper.loader.container.*;
 import copper.loader.container.resource.*;
 import copper.loader.mixin.*;
+import copper.loader.mod.*;
 import copper.loader.util.*;
 import java.io.*;
-import java.net.*;
 import java.util.*;
 import java.util.zip.*;
 
@@ -100,7 +100,7 @@ public class JvmPlatform implements IPlatform {
      */
     private void extractFile(byte[] data, File file) {
         try (var fis = new FileInputStream(file)) {
-            byte[] curr = fis.readAllBytes();
+            byte[] curr = Streams.readAllBytes(fis);
             if (Arrays.equals(data, curr))
                 return;
         } catch (Throwable ignored) {}

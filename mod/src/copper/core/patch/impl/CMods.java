@@ -8,6 +8,7 @@ import copper.core.mod.*;
 import copper.loader.*;
 import copper.loader.mod.*;
 import mindustry.Vars;
+import mindustry.core.*;
 import mindustry.mod.Mod;
 import mindustry.mod.Mods;
 import org.spongepowered.asm.mixin.*;
@@ -100,6 +101,18 @@ public abstract class CMods {
     @Inject(method = "skipModLoading", at = @At("RETURN"), cancellable = true)
     private void cForceModLoad(CallbackInfoReturnable<Boolean> ci) {
         ci.setReturnValue(false);
+    }
+
+    @Redirect(method = "loadMod", at = @At(value = "INVOKE", target = "Lmindustry/core/Platform;loadJar(Larc/files/Fi;Ljava/lang/ClassLoader;)Ljava/lang/ClassLoader;"))
+    private ClassLoader cLoadMdtModJar(Platform platform, Fi jar, ClassLoader loader) {
+        copper.loader.mod.Mod mod = Loader.mods.getModByFile(jar.file());
+        if (mod instanceof MindustryMod && !mod.main.isEmpty())
+            return mod.container.getClassLoader();
+        try {
+            return platform.loadJar(jar, loader);
+        } catch (Throwable e) {
+            throw new ArcRuntimeException(e);
+        }
     }
 
     @Shadow

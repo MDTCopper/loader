@@ -16,32 +16,26 @@ public class Loader {
     public static IPlatform platform;
     public static Game game;
     public static Mods mods;
-    public static Vars vars;
+    public static Vars vars = new Vars();
 
     /**
      * Initializes the loader infrastructure: creates vars, game metadata, mod manager, and reads all mods.
      */
     public static void init() {
-        vars = new Vars();
+        vars.init();
+        vars.setupFileLogger();
         game = new Game();
         mods = new Mods();
-        vars.setupFileLogger();
         Log.info("CopperLoader v" + vars.loaderVersion.toString());
         Log.info("Game info: " + game.variant.name() + " " + game.type.name() + " " + game.version.toString());
         mods.read();
     }
 
     /**
-     * Initializes the game container, inits and bootstraps all mods,
-     * and returns the game's main class.
-     *
-     * @return the game's main class
+     * Initializes the game container, inits all mods.
      */
-    public static Class<?> launch() {
-        Log.info("Launching game.");
+    public static void launch() {
         game.init();
         mods.init();
-        mods.bootstrap();
-        return game.getMainClass();
     }
 }

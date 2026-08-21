@@ -1,0 +1,253 @@
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.ow2.asm:asm-tree:$asmVersion"
+        classpath "org.ow2.asm:asm-commons:$asmVersion"
+        classpath "org.ow2.asm:asm-util:$asmVersion"
+    }
+}
+
+import org.objectweb.asm.*
+import org.objectweb.asm.commons.*
+import java.util.jar.*
+import java.util.zip.*
+
+apply plugin: "java"
+
+evaluationDependsOn(':mod')
+evaluationDependsOn(':tools')
+
+sourceSets {
+    main {
+        java.srcDirs = ["src"]
+        resources.srcDirs = ["res"]
+    }
+}
+
+ext {
+    sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+    isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+    platformRoot = sdkRoot ? new File("$sdkRoot/platforms/")
+            .listFiles()?.sort()?.reverse()?.find { f -> new File(f, "android.jar").exists() }
+            : null
+}
+
+dependencies {
+    implementation project(":core")
+    implementation 'org.eclipse.jdt:ecj:3.46.0'
+    implementation 'com.android.tools:r8:9.4.14'
+    compileOnly 'com.android.tools:desugar_jdk_libs_configuration:2.1.5'
+    compileOnly 'com.android.tools:desugar_jdk_libs:2.1.5'
+
+    if (platformRoot != null) {
+        compileOnly files(new File(platformRoot, "android.jar"))
+    } else {
+        throw new GradleException("No valid Android SDK found.")
+    }
+
+    // dependencies of mindustry android sub-project
+    implementation 'com.jakewharton.android.repackaged:dalvik-dx:9.0.0_r3'
+}
+
+jar {
+    dependsOn configurations.compileClasspath
+    dependsOn configurations.runtimeClasspath
+
+    archiveFileName = "${project.name}-desktop.jar"
+
+    manifest {
+        attributes 'Main-Class': 'copper.launch.ArtBuilder'
+    }
+
+    from ({
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }) {
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+        exclude 'module-info.class', '**/module-info.class'
+        exclude 'META-INF/maven/**'
+    }
+
+    from (project(':mod').tasks.named('jar')) {
+        rename { 'core-mod.jar' }
+        into ''
+    }
+
+    from ({
+        configurations.compileClasspath.files
+            .findAll { it.name.contains("desugar_jdk_libs") }
+            .collect { it.parentFile }
+    }) {
+        include '*.jar'
+        // remove version
+        rename { fileName ->
+            fileName.replaceAll(/-\d+\.\d+\.\d+(?=\.jar$)/, '')
+        }
+    }
+
+    from (platformRoot) {
+        include 'android.jar'
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.WARN
+}
+
+processResources.dependsOn(':tools:genJrtStub')
+
+tasks.register('patchAndroidJar') {
+    dependsOn jar
+    doLast {
+        def inputJarFile = file("build/libs/${project.name}-desktop.jar")
+        def outputJarFile = file("build/libs/${project.name}-android-source.jar")
+        outputJarFile.delete()
+
+        def mapping = [
+                'java/lang/Runtime$Version': 'copper/launch/util/FakeVersion',
+                'javax/annotation/processing/Messager': 'copper/launch/util/BackportMessage$Message',
+                'javax/lang/model/element/AnnotationMirror': 'copper/launch/util/BackportMessage$AnnotationMirror',
+                'javax/lang/model/element/AnnotationValue': 'copper/launch/util/BackportMessage$AnnotationValue',
+                'javax/lang/model/element/Element': 'copper/launch/util/BackportMessage$Element',
+                'javax/tools/Diagnostic': 'copper/launch/util/BackportMessage',
+                'javax/tools/Diagnostic$Kind': 'copper/launch/util/BackportMessage$Kind'
+        ]
+        def remapper = new SimpleRemapper(mapping)
+
+        new JarOutputStream(new FileOutputStream(outputJarFile)).withCloseable { jos ->
+            new JarFile(inputJarFile).withCloseable { jarFile ->
+
+                jarFile.entries().each { entry ->
+                    def entryName = entry.name
+                    if (!entryName.endsWith(".class"))
+                        return
+
+                    jos.putNextEntry(new JarEntry(entryName))
+
+                    if (entryName.startsWith("org/eclipse/jdt/") || entryName.startsWith("org/spongepowered/asm/")) {
+                        byte[] originalBytes = jarFile.getInputStream(entry).bytes
+                        try {
+                            ClassReader cr = new ClassReader(originalBytes)
+                            ClassWriter cw = new ClassWriter(0)
+
+                            ClassVisitor cv = new ClassRemapper(Opcodes.ASM9, cw, remapper) {
+                                @Override
+                                MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                                    MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions)
+
+                                    return new MethodVisitor(Opcodes.ASM9, mv) {
+                                        @Override
+                                        void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor, boolean isInterface) {
+                                            if (owner == "java/lang/Runtime" && methodName == "version") {
+                                                super.visitMethodInsn(Opcodes.INVOKESTATIC, "copper/launch/util/FakeVersion", "current", "()Lcopper/launch/util/FakeVersion;", false)
+                                                return
+                                            }
+                                            super.visitMethodInsn(opcode, owner, methodName, methodDescriptor, isInterface)
+                                        }
+                                    }
+                                }
+                            }
+                            cr.accept(cv, 0)
+                            jos.write(cw.toByteArray())
+
+                        } catch (Exception e) {
+                            e.printStackTrace()
+                            throw new GradleException(e.toString(), e)
+                        }
+                    } else {
+                        jos.write(jarFile.getInputStream(entry).bytes)
+                    }
+                    jos.closeEntry()
+                }
+            }
+        }
+    }
+}
+
+tasks.register('extractDesugarConfig', Copy) {
+    from {
+        return zipTree(configurations.compileClasspath.files
+                .find { it.name.contains("desugar_jdk_libs_configuration") })
+    }
+    include 'META-INF/desugar/d8/desugar.json'
+    into 'build/libs/'
+
+    eachFile { FileCopyDetails details ->
+        details.relativePath = new RelativePath(true, details.name)
+    }
+    includeEmptyDirs = false
+}
+
+tasks.register('jarAndroid') {
+    dependsOn patchAndroidJar
+    dependsOn extractDesugarConfig
+
+    def projectName = project.name
+    doLast {
+        def dependencies = (configurations.runtimeClasspath.asList())
+                .collect{ "--classpath $it.absolutePath" }.join(" ")
+        def libraries = (configurations.compileClasspath.asList())
+                .collect{ "--lib $it.absolutePath" }.join(" ")
+        def desugarLibraries = configurations.compileClasspath.files
+                .findAll { it.name.contains("desugar_jdk_libs") }
+                .collect { it.absolutePath }.join(' ')
+
+        def buildRoot = sdkRoot ? new File("$sdkRoot/build-tools/")
+                .listFiles()?.sort()?.reverse()?.find { f -> new File(f, "lib/d8.jar").exists() }
+                : null
+        if (buildRoot == null)
+            throw new GradleException('No valid android build tools found.');
+
+        def javaCmd = isWindows ? "java.exe" : "java"
+        def d8Cp = (new File(buildRoot, 'lib/d8.jar')).absolutePath
+
+        "$javaCmd -cp $d8Cp com.android.tools.r8.D8 $dependencies $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-base.jar ${projectName}-android-source.jar"
+                .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
+
+        "$javaCmd -cp $d8Cp com.android.tools.r8.L8 $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-desugar.jar $desugarLibraries"
+                .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
+
+        def libsDir = new File(project.projectDir, "build/libs")
+        def baseJar = new File(libsDir, "${projectName}-android-base.jar")
+        def desugarJar = new File(libsDir, "${projectName}-android-desugar.jar")
+        def finalJar = new File(libsDir, "${projectName}-android.jar")
+
+        int globalDexIndex = 1
+        new ZipOutputStream(new FileOutputStream(finalJar)).withCloseable { zos ->
+            [baseJar, desugarJar].each { sourceJar ->
+                if (!sourceJar.exists())
+                    return
+                new ZipFile(sourceJar).withCloseable { zip ->
+                    def dexEntries = zip.entries().toList()
+                            .findAll { it.name.endsWith('.dex') }
+                            .sort { a, b -> a.name.length() <=> b.name.length() ?: a.name <=> b.name }
+                    dexEntries.each { entry ->
+                        def targetName = (globalDexIndex == 1) ? "classes.dex" : "classes${globalDexIndex}.dex"
+                        zos.putNextEntry(new ZipEntry(targetName))
+                        zip.getInputStream(entry).withCloseable { is ->
+                            zos << is
+                        }
+                        zos.closeEntry()
+                        globalDexIndex++
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.register('deploy', Jar) {
+    dependsOn jarAndroid
+    dependsOn jar
+
+    archiveFileName = "${project.name}.jar"
+    def projectName = project.name
+
+    from {[
+            zipTree("build/libs/${projectName}-desktop.jar"),
+            zipTree("build/libs/${projectName}-android.jar")
+    ]}
+}
+

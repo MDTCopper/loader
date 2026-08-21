@@ -4,6 +4,7 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+android/res/*.jar
 core/res/version.properties
 .deepcode/
 

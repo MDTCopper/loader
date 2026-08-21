@@ -74,13 +74,16 @@ public class JvmMixinContainer extends MixinContainer {
                 // Already loaded?
                 Class<?> c = findLoadedClass(name);
 
-                // java.* classes from the platform system classloader.
-                if (c == null && name.startsWith("java.")) {
-                    if (onlyOwnClass)
-                        throw new ClassNotFoundException(name);
-                    try {
-                        c = Object.class.getClassLoader().loadClass(name);
-                    } catch (Throwable ignored) {}
+                // java classes from the platform system classloader.
+                if (c == null) {
+                    if (name.startsWith("java.") ||
+                            name.startsWith("javax.")) {
+                        if (onlyOwnClass)
+                            throw new ClassNotFoundException(name);
+                        try {
+                            c = Object.class.getClassLoader().loadClass(name);
+                        } catch (Throwable ignored) {}
+                    }
                 }
 
                 // Search this container's own classes.
@@ -123,6 +126,8 @@ public class JvmMixinContainer extends MixinContainer {
         @Override
         protected String findLibrary(String libname) {
             byte[] lib = JvmMixinContainer.this.resource.get(libname);
+            if (lib == null)
+                lib = JvmMixinContainer.this.resource.get(System.mapLibraryName(libname));
             if (lib == null)
                 return null;
             return Loader.platform.extractLibrary(lib, libname);

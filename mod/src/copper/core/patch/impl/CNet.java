@@ -2,6 +2,7 @@ package copper.core.patch.impl;
 
 import arc.func.*;
 import copper.core.net.*;
+import copper.loader.*;
 import mindustry.net.*;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
@@ -14,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 public abstract class CNet {
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void cRegisterExtendedPacket(CallbackInfo ci) {
-        Net.registerPacket(ExtendedPacket::new);
+        if (!Loader.vars.vanillaMode)
+            Net.registerPacket(ExtendedPacket::new);
     }
 }

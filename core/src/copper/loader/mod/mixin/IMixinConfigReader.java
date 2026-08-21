@@ -1,5 +1,7 @@
 package copper.loader.mod.mixin;
 
+import copper.loader.container.*;
+import copper.loader.container.info.*;
 import copper.loader.mod.*;
 import copper.loader.util.*;
 
@@ -17,5 +19,5 @@ public interface IMixinConfigReader {
      * @param obj     the parsed mixin config JSON object, modified in place
      * @return the processed JSON config string with version-filtering resolved to a flat list
      */
-    String read(Version version, Jval obj);
+    MixinInfo read(Container container, Version version, Jval obj);
 }

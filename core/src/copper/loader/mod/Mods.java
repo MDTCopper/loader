@@ -76,12 +76,14 @@ public class Mods {
                 String fileName = file.getName();
                 if (!fileName.endsWith(".jar") && !fileName.endsWith(".zip"))
                     continue;
-                if (file.isDirectory() && !Structs.contains(metaFiles, name -> (new File(file, name)).exists()))
-                    continue;
                 try {
                     Mod m = constructor.get(file);
                     if (mod.containsKey(m.id))
                         throw new RuntimeException("found duplicated mod: " + m.id);
+                    if (Loader.vars.vanillaMode) {
+                        if (!(m instanceof MindustryMod) && !m.id.equals("copper:core"))
+                            continue;
+                    }
                     mod.put(m.id, m);
                     pathMap.put(file.getAbsolutePath(), m);
                 } catch (Throwable e) {
@@ -194,6 +196,9 @@ public class Mods {
     public void read() {
         if (state != State.None)
             return;
+        if (Loader.vars.vanillaMode)
+            Log.info("Running under vanilla mode.");
+
         Loader.platform.extractCoreMod();
         readMod(Loader.vars.copperModFolder, copperMetaFiles, Mod::new);
         readMod(Loader.vars.gameModFolder, mindustryMetaFiles, MindustryMod::new);
@@ -202,12 +207,14 @@ public class Mods {
         if (core == null)
             throw new RuntimeException("core mod is not found");
         core.version = Loader.vars.loaderVersion;
+        if (Loader.vars.vanillaMode)
+            core.hidden = true;
 
         sortMod();
         resolveMod();
 
         Log.info("Found " + mod.size() + " mods.");
-        if (Log.getLevel() == Log.Level.DEBUG) {
+        if (Log.getLevel().ordinal() >= Log.Level.DEBUG.ordinal()) {
             Log.debug("Mods list: ");
             eachMod(mod -> Log.debug("  -> " + mod.id + " " + mod.version.toString()));
         }

@@ -162,7 +162,7 @@ public class Mod {
 
     /**
      * Validates dependencies and conflicts, wires export/import rules, and registers mixin configs.
-     * The containers of core mod, game and loader are added in {@link Mods#resolveMod} before calling this.
+     * The containers of core mod, game and loader are added in `Mods.resolveMod` before calling this.
      */
     void resolve() {
         for (String rule : exportRule)
@@ -235,8 +235,7 @@ public class Mod {
                 int ver = config.getInt("version", 0);
                 if (ver <= 0 || ver > mixinReaders.length)
                     throw new RuntimeException("mixin config version is not supported: " + ver);
-                String txt = mixinReaders[ver - 1].read(version, config.get("config"));
-                MixinInfo info = new MixinInfo(container, txt);
+                MixinInfo info = mixinReaders[ver - 1].read(container, version, config.get("config"));
                 target.mixin.add(info);
             } catch (Throwable e) {
                 throw new RuntimeException("failed to read mixin config in mod " + id + " : " + mixin.configPath);
