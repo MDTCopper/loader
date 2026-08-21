@@ -319,7 +319,7 @@ public class ArtBuilder {
         }
     }
 
-    private static void buildRuntimeDex() {
+    private static void buildRuntimeDex() throws Throwable {
         try {
             Log.verbose("Building runtime dex jars.");
             Map<String, ClassFilter> sourceFilter = new HashMap<>();
@@ -333,6 +333,11 @@ public class ArtBuilder {
 
                 MixinContainer container = id.equals("mindustry") ?
                         Loader.game.container : Loader.mods.getModById(id).container;
+                if (container.mixin.isEmpty()) {
+                    sourceFilter.put(id, null);
+                    continue;
+                }
+
                 Set<String> target = new HashSet<>();
                 for (var info : container.mixin) {
                     for (var name : info.mixinName) {
@@ -394,9 +399,14 @@ public class ArtBuilder {
                 if (id.equals("loader"))
                     continue;
 
-                Log.verbose("Building dex for: " + id);
+                ClassFilter filter = sourceFilter.get(id);
+                if (filter == null) {
+                    dexCode.put(id, null);
+                    continue;
+                }
 
-                DexCompiler compiler = buildDexCompiler(id, resource, true, sourceFilter.get(id));
+                Log.verbose("Building dex for: " + id);
+                DexCompiler compiler = buildDexCompiler(id, resource, true, filter);
                 compiler.compile();
                 dexCode.put(id, compiler.getBytecodes());
             }
@@ -408,13 +418,31 @@ public class ArtBuilder {
             for (var entry : dexCode.entrySet()) {
                 String id = entry.getKey();
                 var code = entry.getValue();
-                Log.verbose("Merging dex for: " + id);
+                File dexFile;
+                if (code == null) {
+                    Version version = id.equals("mindustry") ?
+                            Loader.game.version : Loader.mods.getModById(id).version;
+                    dexFile = dexCache.getPackedBaseDexFile(id, version.toString());
+                } else {
+                    dexFile = dexCache.getRuntimeDexFile(id);
+                }
 
-                File dexFile = dexCache.getRuntimeDexFile(id);
-                RuntimeDex dex = new RuntimeDex(loadBaseDexPool(id));
-                for (var e : code.entrySet())
-                    dex.putCode(e.getKey(), e.getValue());
-                dex.build(dexFile);
+                if (!dexFile.exists()) {
+                    Log.verbose("Merging dex for: " + id);
+                    RuntimeDex dex = new RuntimeDex(loadBaseDexPool(id));
+                    if (code != null) {
+                        for (var e : code.entrySet())
+                            dex.putCode(e.getKey(), e.getValue());
+                    }
+                    dex.build(dexFile);
+                }
+
+                if (code == null) {
+                    File link = dexCache.getRuntimeDexLink(id);
+                    try (var fos = new FileOutputStream(link)) {
+                        fos.write(dexFile.getName().getBytes(StandardCharsets.UTF_8));
+                    }
+                }
             }
         } catch (Throwable e) {
             dexCache.clearCurrentRuntime();

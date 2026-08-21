@@ -11,14 +11,17 @@ import java.util.*;
 public class DexCache {
     private File root;
     private File baseDexFolder;
+    private File packedBaseDexFolder;
     private File runtimeDexFolder;
     private File currentRuntimeDexFolder;
 
     public DexCache(File root) {
         this.root = root;
         baseDexFolder = new File(root, "base");
-        runtimeDexFolder = new File(root, "pack");
+        packedBaseDexFolder = new File(root, "pack/base");
+        runtimeDexFolder = new File(root, "pack/runtime");
         baseDexFolder.mkdirs();
+        packedBaseDexFolder.mkdirs();
         runtimeDexFolder.mkdirs();
     }
 
@@ -32,7 +35,24 @@ public class DexCache {
         return new File(baseDexFolder, id + "-" + version + ".jar");
     }
 
+    public File getPackedBaseDexFile(String id, String version) {
+        id = id.replace(':', '-');
+        return new File(packedBaseDexFolder, id + "-" + version + ".jar");
+    }
+
+    public File getRuntimeDexLink(String id) {
+        id = id.replace(':', '-');
+        return new File(currentRuntimeDexFolder, id + ".link");
+    }
+
     public File getRuntimeDexFile(String id) {
+        File link = getRuntimeDexLink(id);
+        if (link.exists()) {
+            try (var fis = new FileInputStream(link)) {
+                String name = new String(Streams.readAllBytes(fis), StandardCharsets.UTF_8);
+                return new File(packedBaseDexFolder, name);
+            } catch (Throwable ignored) {}
+        }
         id = id.replace(':', '-');
         return new File(currentRuntimeDexFolder, id + ".jar");
     }
@@ -56,8 +76,14 @@ public class DexCache {
             if (name.startsWith(id + "-"))
                 (new File(baseDexFolder, name)).delete();
         }
+        for (String name : packedBaseDexFolder.list()) {
+            if (name.startsWith(id + "-"))
+                (new File(baseDexFolder, name)).delete();
+        }
         for (String name : runtimeDexFolder.list()) {
             if ((new File(runtimeDexFolder, name + "/" + id + ".jar")).exists())
+                (new File(runtimeDexFolder, name)).delete();
+            if ((new File(runtimeDexFolder, name + "/" + id + ".link")).exists())
                 (new File(runtimeDexFolder, name)).delete();
         }
     }

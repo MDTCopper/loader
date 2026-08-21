@@ -21,7 +21,8 @@ public class ArtRuntimePlatform extends ArtPlatform {
     protected MixinContainer createJarContainer(File file) {
         try {
             MixinContainer container = new ArtPreMixinContainer();
-            container.resource.resources.add(new ZipResource(new ZipFile(file)));
+            if (file != null)
+                container.resource.resources.add(new ZipResource(new ZipFile(file)));
             return container;
         } catch (Throwable e) {
             throw new RuntimeException("failed to create container for: " + file.getAbsolutePath(), e);

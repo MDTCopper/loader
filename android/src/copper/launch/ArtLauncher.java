@@ -12,7 +12,6 @@ public class ArtLauncher {
         try {
             ArgParser parser = new ArgParser("CopperLoader", "A mindustry loader to load copper mods.");
             parser.setPositionalDescription("mindustry args");
-            parser.addOption("G", "game-jar", "Game jar file path", "path", path -> ArtPlatform.gameFile = new File(path));
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> ArtPlatform.gameDataFolder = new File(path));
             parser.addOption("L", "loader-jar", "Loader jar path", "path", path -> ArtPlatform.jarFile = new File(path));
             parser.addOption("C", "cache-path", "Cache path", "path", path -> ArtPlatform.cacheFolder = new File(path));
@@ -21,7 +20,6 @@ public class ArtLauncher {
             parser.addFlag(null, "vanilla", "Load the vanilla game", () -> Loader.vars.vanillaMode = true);
             parser.parse(args);
 
-            checkFileExists(ArtPlatform.gameFile, "Game jar file");
             checkFileProvided(ArtPlatform.gameDataFolder, "Game data folder");
             checkFileExists(ArtPlatform.jarFile, "Loader jar file");
             checkFileProvided(ArtPlatform.cacheFolder, "Cache folder");

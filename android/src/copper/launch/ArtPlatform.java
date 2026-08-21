@@ -68,9 +68,12 @@ public abstract class ArtPlatform implements IPlatform {
 
             var res = new ZipResource(new ZipFile(gameLibFile));
             var mres = new MountedResouce(res, getAbi());
+            var asset = new ZipResource(new ZipFile(gameAssetFile));
+            var masset = new MountedResouce(asset, "assets");
 
-            // inject android libs and components
+            // inject android libs, assets and components
             container.resource.resources.add(mres);
+            container.resource.resources.add(masset);
             container.resource.resources.add(new ZipResource(new ZipFile(gameAndroidCompFile)));
             // restore resources
             container.resource.resources.addAll(originalRes.resources);

@@ -52,9 +52,21 @@ dependencies {
     implementation 'com.jakewharton.android.repackaged:dalvik-dx:9.0.0_r3'
 }
 
+tasks.register('shrinkArtJar', Jar) {
+    archiveFileName = "${project.name}-art.jar"
+    from (zipTree(new File(platformRoot, "android.jar"))) {
+        exclude 'assets/**'
+        exclude 'NOTICES/**'
+        exclude 'res/**'
+        exclude 'AndroidManifest.xml'
+        exclude 'resources.arsc'
+    }
+}
+
 jar {
     dependsOn configurations.compileClasspath
     dependsOn configurations.runtimeClasspath
+    dependsOn shrinkArtJar
 
     archiveFileName = "${project.name}-desktop.jar"
 
@@ -89,8 +101,8 @@ jar {
         }
     }
 
-    from (platformRoot) {
-        include 'android.jar'
+    from (shrinkArtJar) {
+        rename { 'android.jar' }
     }
 
     duplicatesStrategy = DuplicatesStrategy.WARN
@@ -127,7 +139,7 @@ tasks.register('patchAndroidJar') {
                     jos.putNextEntry(new JarEntry(entryName))
 
                     if (entryName.startsWith("org/eclipse/jdt/") || entryName.startsWith("org/spongepowered/asm/")) {
-                        byte[] originalBytes = jarFile.getInputStream(entry).bytes
+                        byte[] originalBytes = jarFile.getInputStream(entry).readAllBytes()
                         try {
                             ClassReader cr = new ClassReader(originalBytes)
                             ClassWriter cw = new ClassWriter(0)
@@ -157,7 +169,7 @@ tasks.register('patchAndroidJar') {
                             throw new GradleException(e.toString(), e)
                         }
                     } else {
-                        jos.write(jarFile.getInputStream(entry).bytes)
+                        jos.write(jarFile.getInputStream(entry).readAllBytes())
                     }
                     jos.closeEntry()
                 }
@@ -167,6 +179,7 @@ tasks.register('patchAndroidJar') {
 }
 
 tasks.register('extractDesugarConfig', Copy) {
+    dependsOn jar
     from {
         return zipTree(configurations.compileClasspath.files
                 .find { it.name.contains("desugar_jdk_libs_configuration") })
