@@ -378,7 +378,7 @@ public class ArtBuilder {
                 // and the packed base dex already contains their output
                 if (id.equals("mindustry") && sourceFilter.isEmpty()
                         && container.mixin.size() == 1 && container.mixin.get(0).container.id.equals("copper:core")
-                        && dexCache.getPackedBaseDexFile("mindustry", Loader.game.version.toString()).exists())
+                        && dexCache.getPackedBaseDexFile("mindustry", getGamePackedBaseDexVersion()).exists())
                     continue;
 
                 Log.verbose("Applying mixins for: " + id);
@@ -485,9 +485,9 @@ public class ArtBuilder {
                                 Loader.game.container.mixin.get(0).container.id.equals("copper:core"));
 
                 if (buildLink) {
-                    Version version = id.equals("mindustry") ?
-                            Loader.game.version : Loader.mods.getModById(id).version;
-                    dexFile = dexCache.getPackedBaseDexFile(id, version.toString());
+                    String version = id.equals("mindustry") ?
+                            getGamePackedBaseDexVersion() : Loader.mods.getModById(id).version.toString();
+                    dexFile = dexCache.getPackedBaseDexFile(id, version);
                 } else {
                     dexFile = dexCache.getRuntimeDexFile(id);
                 }
@@ -673,6 +673,10 @@ public class ArtBuilder {
         }
 
         return compiler;
+    }
+
+    private static String getGamePackedBaseDexVersion() {
+        return Loader.game.version.toString() + "-" + Loader.mods.getModById("copper:core").version.toString();
     }
 
     private static void checkFileProvided(File file, String desc) {
