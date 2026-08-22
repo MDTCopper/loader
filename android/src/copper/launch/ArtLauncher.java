@@ -22,9 +22,12 @@ public class ArtLauncher {
 
             checkFileProvided(ArtPlatform.gameDataFolder, "Game data folder");
             checkFileExists(ArtPlatform.jarFile, "Loader jar file");
-            checkFileProvided(ArtPlatform.cacheFolder, "Cache folder");
+            checkFileExists(ArtPlatform.cacheFolder, "Cache folder");
 
             ArtPlatform.init();
+            checkFileExists(ArtPlatform.gameAssetFile, "Game assets jar file");
+            checkFileExists(ArtPlatform.gameLibFile, "Game libs jar file");
+
             Loader.platform = new ArtRuntimePlatform();
             ArtRuntimePlatform.dexCache = new DexCache(new File(ArtPlatform.cacheFolder, "dex"));
 

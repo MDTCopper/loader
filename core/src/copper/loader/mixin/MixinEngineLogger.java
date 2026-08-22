@@ -48,7 +48,9 @@ public class MixinEngineLogger extends LoggerAdapterAbstract {
         if (map.get(level).ordinal() > Log.getLevel().ordinal())
             return;
         StringWriter writer = new StringWriter();
-        t.printStackTrace(new PrintWriter(writer));
+        PrintWriter pw = new PrintWriter(writer);
+        t.printStackTrace(pw);
+        pw.flush();
         log(level, message + "\n" + writer);
     }
 

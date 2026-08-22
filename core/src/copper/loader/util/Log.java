@@ -90,8 +90,10 @@ public class Log {
 
     public static void error(Throwable t) {
         StringWriter writer = new StringWriter();
-        t.printStackTrace(new PrintWriter(writer));
-        error(t.toString());
+        PrintWriter pw = new PrintWriter(writer);
+        t.printStackTrace(pw);
+        pw.flush();
+        error(writer.toString());
     }
 
     public static void error(String msg) {

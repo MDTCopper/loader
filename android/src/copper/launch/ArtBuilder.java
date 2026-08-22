@@ -2,7 +2,6 @@ package copper.launch;
 
 import copper.launch.asm.*;
 import copper.launch.builder.*;
-import copper.launch.util.*;
 import copper.loader.*;
 import copper.loader.container.*;
 import copper.loader.container.resource.*;
@@ -94,16 +93,13 @@ public class ArtBuilder {
 
             if (parser.hasOption("build")) {
                 Log.info("Building the cache.");
-                loadLoaderResource();
                 Loader.init();
                 dexCache.init();
                 if (!dexCache.isCurrentRuntimeExisted()) {
                     if (parser.hasOption("verbose"))
                         enableMixinLog();
-                    loadResouce();
-                    loadSystemResource();
+                    loadResouceEntry();
                     buildBaseDexPool();
-                    Loader.launch();
                     buildRuntimeDex();
                 }
             }
@@ -246,24 +242,19 @@ public class ArtBuilder {
         Loader.mods.eachMod(m -> m.container.setMixinLogEnabled(true));
     }
 
-    private static void loadResouce() {
-        Log.verbose("Loading recource.");
-        resourceMap = new HashMap<>();
-        try {
-            D8Resource mdt = new D8Resource(ArtPlatform.gameFile, getRawGameJarFilter());
-            mdt.putAllCode(new D8Resource(ArtPlatform.gameAndroidCompFile));
-            resourceMap.put("mindustry", mdt);
-            resourceMap.put("loader", new D8Resource(ArtPlatform.jarFile, getLoaderJarFilter()));
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+    // lazy load the resource content later
+    private static void loadResouceEntry() {
+        Log.verbose("Loading recource entries.");
+        resourceMap = new LinkedHashMap<>();
         Loader.mods.eachMod(m -> {
             try {
-                resourceMap.put(m.id, new D8Resource(m.file));
+                resourceMap.put(m.id, null);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         });
+        resourceMap.put("loader", null);
+        resourceMap.put("mindustry", null);
     }
 
     private static void loadSystemResource() {
@@ -294,9 +285,7 @@ public class ArtBuilder {
     private static void buildBaseDexPool() {
         Log.verbose("Building base dex pools.");
         baseDexPoolMap = new HashMap<>();
-        for (var entry : resourceMap.entrySet()) {
-            String id = entry.getKey();
-            D8Resource resource = entry.getValue();
+        for (var id : resourceMap.keySet()) {
             if (id.equals("loader"))
                 continue;
 
@@ -307,6 +296,7 @@ public class ArtBuilder {
                 continue;
             Log.verbose("  -> " + id + " : " + version);
 
+            D8Resource resource = loadResource(id);
             DexCompiler compiler = buildDexCompiler(id, resource, false, null);
             compiler.compile();
 
@@ -323,20 +313,27 @@ public class ArtBuilder {
     private static void buildRuntimeDex() throws Throwable {
         try {
             Log.verbose("Building runtime dex jars.");
+            boolean loaderLaunched = false;
             Map<String, ClassFilter> sourceFilter = new HashMap<>();
-            for (var entry : resourceMap.entrySet()) {
-                String id = entry.getKey();
-                D8Resource resource = entry.getValue();
+            for (var id : resourceMap.keySet()) {
                 if (id.equals("loader"))
+                    continue;
+
+                MixinContainer container = id.equals("mindustry") ?
+                        Loader.game.container : Loader.mods.getModById(id).container;
+                if (container.mixin.isEmpty())
+                    continue;
+                if (id.equals("mindustry") && sourceFilter.isEmpty()
+                        && container.mixin.size() == 1 && container.mixin.get(0).container.id.equals("copper:core")
+                        && dexCache.getPackedBaseDexFile("mindustry", Loader.game.version.toString()).exists())
                     continue;
 
                 Log.verbose("Applying mixins for: " + id);
 
-                MixinContainer container = id.equals("mindustry") ?
-                        Loader.game.container : Loader.mods.getModById(id).container;
-                if (container.mixin.isEmpty()) {
-                    sourceFilter.put(id, null);
-                    continue;
+                if (!loaderLaunched) {
+                    loadLoaderResource();
+                    Loader.launch();
+                    loaderLaunched = true;
                 }
 
                 Set<String> target = new HashSet<>();
@@ -356,6 +353,7 @@ public class ArtBuilder {
                         Log.verbose("Found mixin target class: " + name);
                 }
 
+                D8Resource resource = loadResource(id);
                 ClassFilter filter = new ClassFilter();
                 Cons2<String, Set<String>> process = (name, dependency) -> {
                     Log.verbose("Processing mixin class: " + name);
@@ -394,9 +392,7 @@ public class ArtBuilder {
             }
 
             Map<String, Map<String, byte[]>> dexCode = new HashMap<>();
-            for (var entry : resourceMap.entrySet()) {
-                String id = entry.getKey();
-                D8Resource resource = entry.getValue();
+            for (var id : resourceMap.keySet()) {
                 if (id.equals("loader"))
                     continue;
 
@@ -407,6 +403,7 @@ public class ArtBuilder {
                 }
 
                 Log.verbose("Building dex for: " + id);
+                D8Resource resource = loadResource(id);
                 DexCompiler compiler = buildDexCompiler(id, resource, true, filter);
                 compiler.compile();
                 dexCode.put(id, compiler.getBytecodes());
@@ -414,7 +411,8 @@ public class ArtBuilder {
 
             // no needed anymore
             resourceMap.clear();
-            systemResource.clear();
+            if (systemResource != null)
+                systemResource.clear();
 
             for (var entry : dexCode.entrySet()) {
                 String id = entry.getKey();
@@ -453,6 +451,30 @@ public class ArtBuilder {
         } catch (Throwable e) {
             dexCache.clearCurrentRuntime();
             throw e;
+        }
+    }
+
+    // lazy load resource
+    private static D8Resource loadResource(String id) {
+        D8Resource resource = resourceMap.get(id);
+        if (resource != null)
+            return resource;
+        if (!resourceMap.containsKey(id))
+            throw new RuntimeException("missing resource entry: " + id);
+        try {
+            Log.verbose("Loading resource: " + id);
+            if (id.equals("mindustry")) {
+                resource = new D8Resource(ArtPlatform.gameFile, getRawGameJarFilter());
+                resource.putAllCode(new D8Resource(ArtPlatform.gameAndroidCompFile));
+            } else if (id.equals("loader")) {
+                resource = new D8Resource(ArtPlatform.jarFile, getLoaderJarFilter());
+            } else {
+                resource = new D8Resource(Loader.mods.getModById(id).file);
+            }
+            resourceMap.put(id, resource);
+            return resource;
+        } catch (Throwable e) {
+            throw new RuntimeException("failed to load resource: " + id);
         }
     }
 
@@ -502,6 +524,9 @@ public class ArtBuilder {
         DexCompiler compiler = new DexCompiler();
         compiler.addClassPath(resource);
 
+        if (systemResource == null)
+            loadSystemResource();
+
         if (desugarConfig != null)
             compiler.addDesugaredLibraryConfig(desugarConfig);
         for (var res : systemResource)
@@ -544,7 +569,7 @@ public class ArtBuilder {
 
         if (withMixin) {
             for (var mixin : container.mixin) {
-                var lib = resourceMap.get(mixin.container.id)
+                var lib = loadResource(mixin.container.id)
                         .getFiltered(mixin.container.export);
                 compiler.addLibrary(lib);
             }
@@ -553,7 +578,7 @@ public class ArtBuilder {
         for (var dep : container.dependency) {
             var filter = dep.extraImport.copy();
             filter.addAllRules(dep.container.export);
-            var lib = resourceMap.get(dep.container.id)
+            var lib = loadResource(dep.container.id)
                     .getFiltered(filter);
             compiler.addLibrary(lib);
         }

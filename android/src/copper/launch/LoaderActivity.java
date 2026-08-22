@@ -14,6 +14,7 @@ public class LoaderActivity extends Activity {
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> finishAndRemoveTask());
         try {
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(ArtPlatform.gameAssetFile, ParcelFileDescriptor.MODE_READ_ONLY);
             ResourcesProvider provider = ResourcesProvider.loadFromApk(pfd);
