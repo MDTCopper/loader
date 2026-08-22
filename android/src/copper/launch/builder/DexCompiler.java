@@ -8,9 +8,19 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
 
+/**
+ * Wraps a d8 run that turns class files into dex, one class per dex file
+ * (intermediate mode), and collects the output bytecode into a map.
+ *
+ * <p>Sources, classpaths and libraries can be added as files or as in-memory
+ * {@link D8Resource}s. The output classes are stored per class name so they can
+ * be merged into a {@link BaseDexPool} afterwards.</p>
+ */
 public class DexCompiler {
+    /** Id used only for log tags. */
     private String id;
     private final Map<String, byte[]> bytecode;
+    /** Extra raw class sources added as bytes. */
     private List<ProgramResource> source;
     private D8Command.Builder builder;
 
@@ -23,6 +33,7 @@ public class DexCompiler {
         builder.setIntermediate(true);
     }
 
+    /** Sets the id used in log tags. */
     public void setId(String id) {
         this.id = id;
     }
@@ -51,6 +62,7 @@ public class DexCompiler {
         builder.addProgramResourceProvider(source);
     }
 
+    /** Adds a single raw class file as a program source. */
     public void addSource(byte[] code) {
         ProgramResource resource = ProgramResource.fromBytes(
                 Origin.unknown(),
@@ -61,6 +73,7 @@ public class DexCompiler {
         source.add(resource);
     }
 
+    /** Runs d8. The resulting dex classes land in {@link #getBytecodes()}. */
     public void compile() {
         try {
             builder.addProgramResourceProvider(new SourceProvider());
@@ -71,6 +84,7 @@ public class DexCompiler {
         }
     }
 
+    /** Map of class name → dex bytecode produced by the last compile. */
     public Map<String, byte[]> getBytecodes() {
         return bytecode;
     }
@@ -94,6 +108,7 @@ public class DexCompiler {
             if (name.startsWith("L") && name.endsWith(";"))
                 name = name.substring(1, name.length() - 1);
             name = name.replace('/', '.');
+            // d8 may call back from several threads, guard the shared map
             synchronized (bytecode) {
                 bytecode.put(name, data.copyByteData());
             }

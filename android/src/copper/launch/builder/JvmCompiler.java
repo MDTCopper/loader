@@ -15,6 +15,14 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * Compiles java sources in memory with the ECJ compiler.
+ *
+ * <p>Used to build the android components (game android sources + arc backend +
+ * {@code LoaderActivity}) without a full android toolchain. Classpaths can be
+ * jar files or raw jar bytes, optionally filtered. The compiled classes are
+ * collected into a map by class name.</p>
+ */
 public class JvmCompiler {
     private Map<String, byte[]> bytecode;
     private Map<String, String> setting;
@@ -31,10 +39,12 @@ public class JvmCompiler {
         setting.put(CompilerOptions.OPTION_Encoding, "UTF-8");
     }
 
+    /** Adds a source file by its full class name. */
     public void addSource(String fullClassName, String code) {
         source.add(new SourceFile(fullClassName, code));
     }
 
+    /** Adds a source file, treating {@code path} as relative to {@code basePath}. */
     public void addSource(String basePath, String path, String code) {
         if (path.endsWith(".java"))
             path = path.substring(0, path.length() - 5);
@@ -43,6 +53,7 @@ public class JvmCompiler {
         addSource(path.substring(basePath.length()), code);
     }
 
+    /** Sets the source/compliance/target java version (e.g. "17"). */
     public void setVersion(String source, String bytecode) {
         setting.put(CompilerOptions.OPTION_Source, source);
         setting.put(CompilerOptions.OPTION_TargetPlatform, bytecode);
@@ -65,6 +76,7 @@ public class JvmCompiler {
         env.addClassPath(jar, filter);
     }
 
+    /** Runs the compiler. Errors are collected and reported via {@link #getErrors()}. */
     public void compile() {
         CompilerOptions options = new CompilerOptions(setting);
         IErrorHandlingPolicy policy = DefaultErrorHandlingPolicies.proceedWithAllProblems();
@@ -74,18 +86,22 @@ public class JvmCompiler {
         compiler.compile(source.toArray(ICompilationUnit[]::new));
     }
 
+    /** Whether the last compile produced any errors. */
     public boolean hasErrors() {
         return !error.isEmpty();
     }
 
+    /** The compile error messages. */
     public List<String> getErrors() {
         return error;
     }
 
+    /** Map of class name → compiled bytecode. */
     public Map<String, byte[]> getBytecodes() {
         return bytecode;
     }
 
+    /** Collects the compiled classes (or the error messages) of each unit. */
     private class CompilerRequestor implements ICompilerRequestor {
         @Override
         public void acceptResult(CompilationResult result) {
@@ -107,6 +123,7 @@ public class JvmCompiler {
         }
     }
 
+    /** One in-memory compilation unit, with its class name as the path. */
     private static class SourceFile implements ICompilationUnit {
         private final Path classPath;
         private final String content;
@@ -149,6 +166,10 @@ public class JvmCompiler {
         }
     }
 
+    /**
+     * The compiler's name environment: resolves types and packages from the
+     * classpath jars added to this compiler.
+     */
     private static class NameEnv implements INameEnvironment {
         private Set<String> packageName;
         private Map<String, byte[]> code;
@@ -158,6 +179,7 @@ public class JvmCompiler {
             code = new HashMap<>();
         }
 
+        /** Registers one classpath entry (class name → bytes) if it passes the filter. */
         private void processClassPathFile(ZipEntry entry, ClassFilter filter, ThrowableProv<byte[]> code) throws Throwable {
             if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
                 String className = entry.getName().replace('\\', '/');
@@ -170,6 +192,7 @@ public class JvmCompiler {
                 if (filter != null && !filter.check(className))
                     return;
 
+                // record every package segment so isPackage() can answer
                 int i = 0;
                 while (true) {
                     int j = className.indexOf('.', i);
@@ -212,6 +235,7 @@ public class JvmCompiler {
             }
         }
 
+        /** Answers a type lookup by reading the stored class bytes. */
         @Override
         public NameEnvironmentAnswer findType(char[][] compoundTypeName) {
             StringBuilder result = new StringBuilder();
@@ -241,6 +265,7 @@ public class JvmCompiler {
             return findType(compoundName);
         }
 
+        /** Answers whether a package name is known from the classpath. */
         @Override
         public boolean isPackage(char[][] parentPackageName, char[] packageName) {
             StringBuilder sb = new StringBuilder();

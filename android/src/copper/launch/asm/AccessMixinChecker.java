@@ -2,6 +2,14 @@ package copper.launch.asm;
 
 import org.objectweb.asm.*;
 
+/**
+ * Checks whether a mixin class is an "access mixin".
+ *
+ * <p>A class is an access mixin when it is annotated {@code @Mixin} and every
+ * mixin annotation on its methods is either {@code @Accessor} or {@code @Invoker}.
+ * Access mixins only generate accessor code, so unlike normal mixins they are
+ * kept as source when the consuming container is compiled.</p>
+ */
 public class AccessMixinChecker extends ClassVisitor {
     private boolean mixin;
     private boolean accessMixin;
@@ -12,10 +20,12 @@ public class AccessMixinChecker extends ClassVisitor {
         accessMixin = true;
     }
 
+    /** Whether the class is an access mixin (mixin + only accessor/invoker methods). */
     public boolean isAccessMixin() {
         return accessMixin && mixin;
     }
 
+    /** Whether the class is a mixin at all. */
     public boolean isMixin() {
         return mixin;
     }
@@ -32,6 +42,8 @@ public class AccessMixinChecker extends ClassVisitor {
         return new MethodVisitor(this.api, super.visitMethod(access, name, descriptor, signature, exceptions)) {
             @Override
             public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                // any mixin method annotation that is not accessor/invoker makes
+                // this a normal (non-access) mixin
                 if (descriptor.startsWith("Lorg/spongepowered/asm/mixin/")) {
                     if (!descriptor.endsWith("/Accessor;") && !descriptor.endsWith("/Invoker;"))
                         accessMixin = false;

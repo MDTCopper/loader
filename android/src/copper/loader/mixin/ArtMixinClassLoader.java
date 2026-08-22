@@ -7,6 +7,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+/**
+ * The dex-based counterpart of {@link JvmMixinClassLoader}: loads the mixin
+ * engine's isolated environment from the loader jar on Android.
+ *
+ * <p>Classes matching {@link MixinContainerClassFilter} are loaded from this
+ * loader's own dex; everything else is delegated to the parent.</p>
+ */
 public class ArtMixinClassLoader extends DexClassLoader {
     private final ClassFilter filter;
 
@@ -18,6 +25,7 @@ public class ArtMixinClassLoader extends DexClassLoader {
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         if (filter.check(name)) {
+            // child-first: look in this loader before asking the parent
             Class<?> c = findLoadedClass(name);
             if (c == null) {
                 try {

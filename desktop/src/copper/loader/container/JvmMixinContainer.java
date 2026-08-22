@@ -45,7 +45,7 @@ public class JvmMixinContainer extends MixinContainer {
      * <p>Class loading order:
      * <ol>
      *   <li>Check already-loaded classes</li>
-     *   <li>For {@code java.*} classes: delegate to platform system classloader</li>
+     *   <li>For {@code java.*}/{@code javax.*} classes: delegate to platform system classloader</li>
      *   <li>Find in this container's own resources (with mixin transformation)</li>
      *   <li>Find in accessible dependency/mixin containers</li>
      * </ol>
@@ -126,6 +126,7 @@ public class JvmMixinContainer extends MixinContainer {
         @Override
         protected String findLibrary(String libname) {
             byte[] lib = JvmMixinContainer.this.resource.get(libname);
+            // also try the platform-mapped file name (e.g. libfoo.so)
             if (lib == null)
                 lib = JvmMixinContainer.this.resource.get(System.mapLibraryName(libname));
             if (lib == null)

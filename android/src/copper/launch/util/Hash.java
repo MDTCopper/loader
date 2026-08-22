@@ -3,6 +3,7 @@ package copper.launch.util;
 import java.io.*;
 import java.security.*;
 
+/** Small sha256 helper, used to name the runtime dex folders. */
 public class Hash {
     private static final char[] hexMap = "0123456789abcdef".toCharArray();
 
@@ -15,6 +16,7 @@ public class Hash {
         return builder.toString();
     }
 
+    /** Returns the sha256 hex string of the given data. */
     public static String sha256(byte[] data) {
         try{
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

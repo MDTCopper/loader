@@ -9,6 +9,14 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+/**
+ * The runtime mixin container on Android: loads classes from the prebuilt dex.
+ *
+ * <p>{@link #init()} picks the dex file for this container's id from the
+ * {@link DexCache} and loads it through a {@link DexClassLoader}. The loading
+ * order is the same as the JVM container: own classes first, then classes
+ * accessible from dependencies/mixins.</p>
+ */
 public class ArtPreMixinContainer extends MixinContainer {
     protected ContainerClassLoader loader;
 
@@ -34,6 +42,10 @@ public class ArtPreMixinContainer extends MixinContainer {
         return loader;
     }
 
+    /**
+     * {@link DexClassLoader} that loads one container's dex, with the same
+     * search order as {@code JvmMixinContainer}'s loader.
+     */
     public class ContainerClassLoader extends DexClassLoader {
         public ContainerClassLoader(File dexFile) {
             super(dexFile.getAbsolutePath(), ArtPlatform.optimizedDexCacehFolder.getAbsolutePath(), null, null);
@@ -100,6 +112,7 @@ public class ArtPreMixinContainer extends MixinContainer {
         @Override
         public String findLibrary(String libname) {
             byte[] lib = ArtPreMixinContainer.this.resource.get(libname);
+            // also try the platform-mapped file name (e.g. libfoo.so)
             if (lib == null)
                 lib = ArtPreMixinContainer.this.resource.get(System.mapLibraryName(libname));
             if (lib == null)

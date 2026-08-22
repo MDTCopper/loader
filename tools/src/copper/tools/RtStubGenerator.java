@@ -9,9 +9,20 @@ import java.util.*;
 import java.util.jar.*;
 import java.util.zip.*;
 
+/**
+ * Generates {@code java-stub-rt.jar} from the running JVM's java.base module.
+ *
+ * <p>The stub jar holds every {@code java.*}/{@code javax.*} class with its
+ * fields/methods left intact but with private members removed and method bodies
+ * replaced by {@code throw new RuntimeException("Stub!")}. It is only used as a
+ * compile/resolution classpath for the builder (see the android build script),
+ * so code that merely references java API types can be compiled and dexed even
+ * though the real classes are absent on the target device.</p>
+ */
 public class RtStubGenerator {
     public static void main(String[] args) {
         File outputJar = new File("java-stub-rt.jar");
+        // already generated, keep it
         if (outputJar.exists())
             System.exit(0);
 
@@ -79,6 +90,10 @@ public class RtStubGenerator {
         }
     }
 
+    /**
+     * Stubs one class: drops private fields/methods and replaces every
+     * non-abstract/native method body with a throwing stub.
+     */
     private static byte[] processClass(byte[] classBytes) {
         ClassReader cr = new ClassReader(classBytes);
         ClassNode cn = new ClassNode();
@@ -90,6 +105,7 @@ public class RtStubGenerator {
         cn.methods.removeIf(m -> (m.access & Opcodes.ACC_PRIVATE) != 0);
 
         for (MethodNode mn : cn.methods) {
+            // abstract/native methods have no body to replace
             if ((mn.access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0) {
                 mn.instructions.clear();
                 mn.tryCatchBlocks.clear();
@@ -107,6 +123,7 @@ public class RtStubGenerator {
 
                 mn.instructions = il;
                 mn.maxStack = 3;
+                // locals must cover the arguments (+this for instance methods)
                 int argsSize = 0;
                 for (Type argType : Type.getArgumentTypes(mn.desc)) {
                     argsSize += argType.getSize();

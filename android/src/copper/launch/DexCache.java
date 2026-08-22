@@ -8,6 +8,17 @@ import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/**
+ * Manages the on-disk dex cache layout.
+ *
+ * <p>Layout under the cache root:</p>
+ * <ul>
+ *   <li>{@code base/<id>-<version>.jar} — per-mod dex before any mixins</li>
+ *   <li>{@code pack/base/<id>-<version>.jar} — final packed dex for vanilla (no-mixin) mods</li>
+ *   <li>{@code pack/runtime/<hash>/...} — the dex set for the currently enabled mods,
+ *       where the folder name is a hash of the enabled mod list</li>
+ * </ul>
+ */
 public class DexCache {
     private File root;
     private File baseDexFolder;
@@ -15,6 +26,7 @@ public class DexCache {
     private File runtimeDexFolder;
     private File currentRuntimeDexFolder;
 
+    /** Creates the cache folders under the given root. */
     public DexCache(File root) {
         this.root = root;
         baseDexFolder = new File(root, "base");
@@ -25,26 +37,34 @@ public class DexCache {
         runtimeDexFolder.mkdirs();
     }
 
+    /** Picks the runtime folder for the currently enabled mods. */
     public void init() {
         currentRuntimeDexFolder = getCurrentRuntimeFolder();
         currentRuntimeDexFolder.mkdirs();
     }
 
+    /** Returns the base dex file for a mod at a given version. */
     public File getBaseDexFile(String id, String version) {
         id = id.replace(':', '-');
         return new File(baseDexFolder, id + "-" + version + ".jar");
     }
 
+    /** Returns the packed base dex file for a mod at a given version. */
     public File getPackedBaseDexFile(String id, String version) {
         id = id.replace(':', '-');
         return new File(packedBaseDexFolder, id + "-" + version + ".jar");
     }
 
+    /** Returns the link file that points a runtime entry to a packed base dex. */
     public File getRuntimeDexLink(String id) {
         id = id.replace(':', '-');
         return new File(currentRuntimeDexFolder, id + ".link");
     }
 
+    /**
+     * Returns the dex file to actually load for {@code id}.
+     * Follows the link file when present, otherwise the runtime dex file.
+     */
     public File getRuntimeDexFile(String id) {
         File link = getRuntimeDexLink(id);
         if (link.exists()) {
@@ -57,19 +77,24 @@ public class DexCache {
         return new File(currentRuntimeDexFolder, id + ".jar");
     }
 
+    /** Whether a runtime dex for the current mod set already exists. */
     public boolean isCurrentRuntimeExisted() {
         return getRuntimeDexFile("mindustry").exists();
     }
 
+    /** Deletes the runtime folder of the current mod set (used on a failed build). */
     public void clearCurrentRuntime() {
         currentRuntimeDexFolder.delete();
     }
 
+    /** Deletes all base and runtime dexes. */
     public void clear() {
         baseDexFolder.delete();
+        packedBaseDexFolder.delete();
         runtimeDexFolder.delete();
     }
 
+    /** Deletes every cache entry related to one mod id. */
     public void remove(String id) {
         id = id.replace(':', '-');
         for (String name : baseDexFolder.list()) {
@@ -88,6 +113,11 @@ public class DexCache {
         }
     }
 
+    /**
+     * The runtime folder is named after a sha256 hash of the enabled mod list
+     * (game version + every mod id/version), so a different mod set yields a
+     * different folder.
+     */
     private File getCurrentRuntimeFolder() {
         try {
             ArrayList<String> list = new ArrayList<>();

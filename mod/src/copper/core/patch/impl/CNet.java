@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 public abstract class CNet {
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void cRegisterExtendedPacket(CallbackInfo ci) {
+        // the extended packet type must stay out of the vanilla game
         if (!Loader.vars.vanillaMode)
             Net.registerPacket(ExtendedPacket::new);
     }

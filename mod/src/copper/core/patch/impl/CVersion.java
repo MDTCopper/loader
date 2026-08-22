@@ -14,6 +14,7 @@ public abstract class CVersion {
     @Inject(method = "combined", at = @At("RETURN"), cancellable = true)
     private static void cAddCopperVersion(CallbackInfoReturnable<String> ci) {
         String txt = ci.getReturnValue() + " + " + "copper v" + Loader.vars.loaderVersion.toString();
+        // mark the version string when running the vanilla game
         if (Loader.vars.vanillaMode)
             txt += " (vanilla mode)";
         ci.setReturnValue(txt);

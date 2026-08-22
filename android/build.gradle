@@ -138,6 +138,7 @@ tasks.register('patchAndroidJar') {
 
                     jos.putNextEntry(new JarEntry(entryName))
 
+                    // only ecj/jdt and the mixin framework reference the missing classes
                     if (entryName.startsWith("org/eclipse/jdt/") || entryName.startsWith("org/spongepowered/asm/")) {
                         byte[] originalBytes = jarFile.getInputStream(entry).readAllBytes()
                         try {
@@ -152,6 +153,7 @@ tasks.register('patchAndroidJar') {
                                     return new MethodVisitor(Opcodes.ASM9, mv) {
                                         @Override
                                         void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor, boolean isInterface) {
+                                            // Runtime.version() does not exist on Android
                                             if (owner == "java/lang/Runtime" && methodName == "version") {
                                                 super.visitMethodInsn(Opcodes.INVOKESTATIC, "copper/launch/util/FakeVersion", "current", "()Lcopper/launch/util/FakeVersion;", false)
                                                 return
@@ -169,6 +171,7 @@ tasks.register('patchAndroidJar') {
                             throw new GradleException(e.toString(), e)
                         }
                     } else {
+                        // everything else is kept as-is
                         jos.write(jarFile.getInputStream(entry).readAllBytes())
                     }
                     jos.closeEntry()
@@ -216,9 +219,11 @@ tasks.register('jarAndroid') {
         def javaCmd = isWindows ? "java.exe" : "java"
         def d8Cp = (new File(buildRoot, 'lib/d8.jar')).absolutePath
 
+        // 1. dex the patched sources (the loader itself)
         "$javaCmd -cp $d8Cp com.android.tools.r8.D8 $dependencies $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-base.jar ${projectName}-android-source.jar"
                 .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
 
+        // 2. pre-dex the desugar library jar with L8
         "$javaCmd -cp $d8Cp com.android.tools.r8.L8 $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-desugar.jar $desugarLibraries"
                 .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
 
@@ -227,6 +232,7 @@ tasks.register('jarAndroid') {
         def desugarJar = new File(libsDir, "${projectName}-android-desugar.jar")
         def finalJar = new File(libsDir, "${projectName}-android.jar")
 
+        // 3. combine all dex files into one jar, numbered classes.dex, classes2.dex, ...
         int globalDexIndex = 1
         new ZipOutputStream(new FileOutputStream(finalJar)).withCloseable { zos ->
             [baseJar, desugarJar].each { sourceJar ->

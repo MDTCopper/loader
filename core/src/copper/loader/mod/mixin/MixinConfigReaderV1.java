@@ -39,6 +39,10 @@ import copper.loader.util.*;
  * The special key {@code "*"} always matches.</p>
  */
 public class MixinConfigReaderV1 implements IMixinConfigReader {
+    /**
+     * Reads the config, keeps the matching mixin entries, and wraps the result
+     * in a {@link MixinInfo} owned by the given container.
+     */
     @Override
     public MixinInfo read(Container container, Version version, Jval obj) {
         Jval.JsonMap mixins = obj.remove("mixins").asObject();
@@ -72,6 +76,7 @@ public class MixinConfigReaderV1 implements IMixinConfigReader {
         }
 
         obj.add("mixins", mergedMixins);
+        // attach the owning container, the final config json, and the mixin package
         info.container = container;
         info.config = obj.toString(Jval.Jformat.plain);
         info.packageName = obj.getString("package");

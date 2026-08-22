@@ -9,9 +9,18 @@ import copper.loader.util.*;
 import java.io.*;
 import java.util.zip.*;
 
+/**
+ * The device-side {@link ArtPlatform}: loads the prebuilt dex cache at runtime.
+ *
+ * <p>Mixins were already applied when the cache was built, so the runtime only
+ * needs a {@link MockMixinEngine}. Containers load their classes from the built
+ * dex files via {@link ArtPreMixinContainer}.</p>
+ */
 public class ArtRuntimePlatform extends ArtPlatform {
+    /** Cache of the built dex files, shared with the launcher. */
     public static DexCache dexCache;
 
+    /** Mixins are pre-applied, so the engine does nothing at runtime. */
     @Override
     public IMixinEngine createMixinEngine() {
         return new MockMixinEngine();
@@ -29,6 +38,7 @@ public class ArtRuntimePlatform extends ArtPlatform {
         }
     }
 
+    /** Returns the ABI of the current device. */
     @Override
     protected String getAbi() {
         return Build.SUPPORTED_ABIS[0];

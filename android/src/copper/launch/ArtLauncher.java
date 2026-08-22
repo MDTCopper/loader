@@ -5,6 +5,14 @@ import copper.loader.util.*;
 import java.io.*;
 import java.nio.charset.*;
 
+/**
+ * Boots the loader on a device using the prebuilt dex cache.
+ *
+ * <p>Called by the launcher app (through its {@code LoaderComponentFactory},
+ * before the game activity is instantiated). It validates the cache, boots the
+ * loader, and prepares the game data folder. The caller then creates the game
+ * activity from {@code Loader.game.getMainClass()}.</p>
+ */
 public class ArtLauncher {
     public static void main(String[] args) {
         Log.setBackend(Log.Backend::colorless);
@@ -33,12 +41,15 @@ public class ArtLauncher {
 
             Loader.init();
             ArtRuntimePlatform.dexCache.init();
+            // the dex for this exact set of mods must have been built before launching
             if (!ArtRuntimePlatform.dexCache.isCurrentRuntimeExisted())
                 throw new RuntimeException("runtime cache is not existed, build it first");
 
             Loader.launch();
             Loader.mods.bootstrap();
 
+            // write the "files moved" markers so the android backend skips its
+            // file-moving step (the data folder is already in place)
             writeFile(new File(Loader.vars.gameDataFolder, "files_moved"), "files moved");
             writeFile(new File(Loader.vars.gameDataFolder, "files_moved_103"), "files moved again");
         } catch (Throwable e) {

@@ -38,6 +38,7 @@ public class ForwardedFi extends Fi {
         return target.file();
     }
 
+    // keep the virtual path here; the real file may not exist on disk
     @Override
     public String absolutePath() {
         return path();

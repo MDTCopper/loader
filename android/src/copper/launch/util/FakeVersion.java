@@ -1,10 +1,22 @@
 package copper.launch.util;
 
+/**
+ * Stand-in for {@code java.lang.Runtime.Version}, which does not exist on Android.
+ *
+ * <p>Only the {@code major} number is kept meaningful: {@link #current()} always
+ * reports 17 (the java level the builder compiles with), so code that checks
+ * {@code Runtime.version().major() >= N} behaves like a modern JVM.</p>
+ */
 public class FakeVersion implements Comparable<FakeVersion> {
     public int major;
 
     public FakeVersion() {}
 
+    /**
+     * Parses a version string like {@code "17.0.1"}.
+     * Special-cases {@code 1.x} legacy versions to use the second number
+     * (e.g. {@code "1.8.0"} → 8). Falls back to 17 on any parse failure.
+     */
     public static FakeVersion parse(String s) {
         FakeVersion v = new FakeVersion();
         try {
@@ -34,6 +46,7 @@ public class FakeVersion implements Comparable<FakeVersion> {
         return v;
     }
 
+    /** The version of the current runtime: always java 17. */
     public static FakeVersion current() {
         FakeVersion v = new FakeVersion();
         v.major = 17;

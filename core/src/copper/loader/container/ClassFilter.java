@@ -26,6 +26,7 @@ public class ClassFilter {
         rules.add(new Rule(txt));
     }
 
+    /** Adds all rules from another filter. */
     public void addAllRules(ClassFilter filter) {
         rules.addAll(filter.rules);
     }
@@ -51,6 +52,7 @@ public class ClassFilter {
         return false;
     }
 
+    /** Returns a new filter with the same rules. */
     public ClassFilter copy() {
         ClassFilter filter = new ClassFilter();
         filter.rules.addAll(rules);

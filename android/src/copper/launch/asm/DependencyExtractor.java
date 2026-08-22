@@ -4,6 +4,14 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.signature.*;
 import java.util.*;
 
+/**
+ * Collects every class a class references at the bytecode level.
+ *
+ * <p>Super classes, interfaces, field/method descriptors, annotations, generic
+ * signatures, and all bytecode instructions that mention types are scanned.
+ * The result is used to find the closure of classes affected by a mixin, so
+ * the builder can dex them all together.</p>
+ */
 public class DependencyExtractor extends ClassVisitor {
     private static final Set<String> primitives = new HashSet<>(Arrays.asList(
             "void", "boolean", "char", "byte", "short", "int", "float", "long", "double"
@@ -17,6 +25,7 @@ public class DependencyExtractor extends ClassVisitor {
         dependencies = new HashSet<>();
     }
 
+    /** The collected dependencies, minus the class itself and primitives. */
     public Set<String> getDependencies() {
         dependencies.remove(currentClassName);
         dependencies.removeAll(primitives);

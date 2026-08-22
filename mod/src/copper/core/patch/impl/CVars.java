@@ -22,6 +22,10 @@ public class CVars {
         return new String[]{"[D]", "[I]", "[W]", "[E]", ""};
     }
 
+    /**
+     * Redirects Mindustry's file logger so it writes into Copper's own log file
+     * (or reuses the already opened Copper file writer when present).
+     */
     @Redirect(method = "loadFileLogger(Larc/files/Fi;)V", at = @At(value = "INVOKE", target = "Larc/files/Fi;writer(Z)Ljava/io/Writer;"))
     private static Writer cReplaceLogFileWritter(Fi file, boolean append) {
         Writer replaced = Log.getLogFileWriter();

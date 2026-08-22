@@ -9,17 +9,42 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * Shared {@link IPlatform} implementation for the ART (Android) side.
+ *
+ * <p>Holds the fixed cache file locations and the shared logic needed both when
+ * {@link ArtBuilder building} the dex cache and when {@link ArtLauncher running}
+ * it on the device. Subclasses only need to provide the concrete jar container
+ * type and the device ABI.</p>
+ */
 public abstract class ArtPlatform implements IPlatform {
+    /** The loader jar file. */
     public static File jarFile;
+    /** The desktop game jar used as the bytecode source. */
     public static File gameFile;
+    /** Packed game assets (what would be {@code assets/} in an apk). */
     public static File gameAssetFile;
+    /**
+     * Compiled android components: the game's android sources and the arc
+     * android backend (its base activity is rewritten to extend the loader's
+     * own {@link LoaderActivity}).
+     */
     public static File gameAndroidCompFile;
+    /**
+     * Packed native libraries (.so files) of the arc natives, one folder per
+     * ABI; the runtime picks the one matching the device.
+     */
     public static File gameLibFile;
+    /** The game data folder on the device. */
     public static File gameDataFolder;
+    /** The cache folder that holds everything built by {@link ArtBuilder}. */
     public static File cacheFolder;
+    /** Folder where extracted native libraries are stored. */
     public static File libCacheFolder;
+    /** Folder where optimized dex files (oat) are written by Android. */
     public static File optimizedDexCacehFolder;
 
+    /** Fills in the cache file locations and creates the extra folders. */
     public static void init() {
         gameAssetFile = new File(cacheFolder, "asset.jar");
         gameAndroidCompFile = new File(cacheFolder, "android.jar");
@@ -31,6 +56,10 @@ public abstract class ArtPlatform implements IPlatform {
         optimizedDexCacehFolder.mkdirs();
     }
 
+    /**
+     * Writes a native library into the lib cache and returns its path,
+     * so it can be loaded even though the original jar is gone.
+     */
     @Override
     public String extractLibrary(byte[] library, String name) {
         try {
@@ -45,6 +74,7 @@ public abstract class ArtPlatform implements IPlatform {
         }
     }
 
+    /** Writes the bundled copper core mod into the copper mod folder. */
     @Override
     public void extractCoreMod() {
         File target = new File(Loader.vars.copperModFolder, "copper-core.jar");
@@ -59,6 +89,10 @@ public abstract class ArtPlatform implements IPlatform {
         return createJarContainer(file);
     }
 
+    /**
+     * Creates the game container and injects the android pieces into it:
+     * native libs, packed assets, and the compiled android components.
+     */
     @Override
     public MixinContainer createGameContainer() {
         try {
@@ -115,7 +149,9 @@ public abstract class ArtPlatform implements IPlatform {
         }
     }
 
+    /** Creates a mixin container for one jar file. */
     protected abstract MixinContainer createJarContainer(File file);
 
+    /** Returns the ABI (e.g. {@code arm64-v8a}) the packed native libs target. */
     protected abstract String getAbi();
 }

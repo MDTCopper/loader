@@ -103,6 +103,11 @@ public abstract class CMods {
         ci.setReturnValue(false);
     }
 
+    /**
+     * Replaces {@code Platform.loadJar()} when a Mindustry Java mod is loaded:
+     * Copper-managed mods use the Copper container classloader instead, so their
+     * dependencies and mixins work; anything else falls back to the vanilla path.
+     */
     @Redirect(method = "loadMod(Larc/files/Fi;ZZ)Lmindustry/mod/Mods$LoadedMod;", at = @At(value = "INVOKE", target = "Lmindustry/core/Platform;loadJar(Larc/files/Fi;Ljava/lang/ClassLoader;)Ljava/lang/ClassLoader;"))
     private ClassLoader cLoadMdtModJar(Platform platform, Fi jar, ClassLoader loader) {
         copper.loader.mod.Mod mod = Loader.mods.getModByFile(jar.file());

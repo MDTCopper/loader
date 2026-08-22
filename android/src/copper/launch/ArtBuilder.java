@@ -14,6 +14,21 @@ import java.nio.charset.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * Builds the ART (Android) runtime cache from the desktop game jar.
+ *
+ * <p>It runs either on a desktop JVM (the built {@code -desktop.jar}) or directly
+ * on the device (the launcher app's "build" action); see {@link ArtBuilderPlatform}.
+ * The pipeline is roughly:</p>
+ * <ol>
+ *   <li>{@code --init}: compile the android components, pack game assets and native libs.</li>
+ *   <li>{@code --build}: load every enabled mod, apply their mixins to the bytecode,
+ *       dex each mod with d8, and merge the results into the runtime dex jars.</li>
+ * </ol>
+ *
+ * <p>The result is a cache folder that {@link ArtLauncher} later loads on the device,
+ * where mixins are already applied and no runtime transformation is needed.</p>
+ */
 public class ArtBuilder {
     private static DexCache dexCache;
     private static ZipFile gameJar;
@@ -21,9 +36,13 @@ public class ArtBuilder {
     private static ZipFile gameSrc;
     private static ZipFile arcSrc;
 
+    /** Map of mod id to resource; entries are filled lazily (see {@link #loadResource}). */
     private static Map<String, D8Resource> resourceMap;
+    /** System libraries every dex compile needs (android.jar, desugar libs, ...). */
     private static List<D8Resource> systemResource;
+    /** In-memory base dex pools, only kept on the desktop to save heap. */
     private static Map<String, BaseDexPool> baseDexPoolMap;
+    /** The d8 desugared-lib config json, read from an internal jar. */
     private static String desugarConfig;
 
     public static void main(String[] args) {
@@ -95,6 +114,7 @@ public class ArtBuilder {
                 Log.info("Building the cache.");
                 Loader.init();
                 dexCache.init();
+                // skip everything if the dex for this exact mod set already exists
                 if (!dexCache.isCurrentRuntimeExisted()) {
                     if (parser.hasOption("verbose"))
                         enableMixinLog();
@@ -111,6 +131,12 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Compiles the android sources of the game and the arc backend into
+     * {@code android.jar}. The backend's base {@code AndroidApplication} is
+     * rewritten to extend the loader's own {@link LoaderActivity}, which is
+     * resolved from the loader jar classpath at compile time.
+     */
     private static void buildAndroidComponent() {
         if (ArtPlatform.gameAndroidCompFile.exists())
             return;
@@ -168,6 +194,11 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Copies every non-class file of the desktop game jar into {@code asset.jar}
+     * under an {@code assets/} prefix, plus a dummy manifest to satisfy the
+     * strict apk verification.
+     */
     private static void packGameAssets() {
         if (ArtPlatform.gameAssetFile.exists())
             return;
@@ -203,6 +234,7 @@ public class ArtBuilder {
         }
     }
 
+    /** Packs the android native libraries (.so files) from the arc source zip. */
     private static void packGameLibs() {
         if (ArtPlatform.gameLibFile.exists())
             return;
@@ -231,18 +263,24 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Adds the java runtime stub and android.jar bytecode to the loader container,
+     * so the mixin engine can resolve java/android classes while transforming.
+     */
     private static void loadLoaderResource() {
         Log.verbose("Loading loader resource.");
         Loader.vars.loaderContainer.resource.resources.add(new BytecodeResource(readInternalFile("java-stub-rt.jar"), null));
         Loader.vars.loaderContainer.resource.resources.add(new BytecodeResource(readInternalFile("android.jar"), getAndroidJarFilter()));
     }
 
+    /** Turns on mixin audit logging for the game and every mod. */
     private static void enableMixinLog() {
         Loader.game.container.setMixinLogEnabled(true);
         Loader.mods.eachMod(m -> m.container.setMixinLogEnabled(true));
     }
 
-    // lazy load the resource content later
+    /** Registers one resource entry per mod plus {@code loader} and {@code mindustry};
+     *  the actual jars are only opened when first needed. */
     private static void loadResouceEntry() {
         Log.verbose("Loading recource entries.");
         resourceMap = new LinkedHashMap<>();
@@ -257,11 +295,16 @@ public class ArtBuilder {
         resourceMap.put("mindustry", null);
     }
 
+    /**
+     * Loads the system libraries shared by every dex compile: android.jar,
+     * the desugar libs, and the desugar config json.
+     */
     private static void loadSystemResource() {
         Log.verbose("Loading system recource.");
         systemResource = new ArrayList<>();
         byte[] desugarConfigJarBytes = readInternalFile("desugar_jdk_libs_configuration.jar");
 
+        // find the desugar.json inside the config jar
         try (var zis = new ZipInputStream(new ByteArrayInputStream(desugarConfigJarBytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -282,6 +325,10 @@ public class ArtBuilder {
         systemResource.add(new D8Resource(desugarConfigJarBytes));
     }
 
+    /**
+     * Dexes every mod once (without mixins) and stores the result as its base dex pool.
+     * Later, runtime dexes are built by merging these pools with the mixin output.
+     */
     private static void buildBaseDexPool() {
         Log.verbose("Building base dex pools.");
         baseDexPoolMap = new HashMap<>();
@@ -310,6 +357,10 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Applies the registered mixins to each mod's bytecode and produces the
+     * final runtime dex jars (or link files to the packed base dexes).
+     */
     private static void buildRuntimeDex() throws Throwable {
         try {
             Log.verbose("Building runtime dex jars.");
@@ -323,6 +374,8 @@ public class ArtBuilder {
                         Loader.game.container : Loader.mods.getModById(id).container;
                 if (container.mixin.isEmpty())
                     continue;
+                // vanilla game: only the copper core mod's mixins are registered,
+                // and the packed base dex already contains their output
                 if (id.equals("mindustry") && sourceFilter.isEmpty()
                         && container.mixin.size() == 1 && container.mixin.get(0).container.id.equals("copper:core")
                         && dexCache.getPackedBaseDexFile("mindustry", Loader.game.version.toString()).exists())
@@ -330,12 +383,14 @@ public class ArtBuilder {
 
                 Log.verbose("Applying mixins for: " + id);
 
+                // the mixin engine needs the full loader environment, boot it once
                 if (!loaderLaunched) {
                     loadLoaderResource();
                     Loader.launch();
                     loaderLaunched = true;
                 }
 
+                // read the @Mixin targets out of every mixin class
                 Set<String> target = new HashSet<>();
                 for (var info : container.mixin) {
                     for (var name : info.mixinName) {
@@ -353,6 +408,8 @@ public class ArtBuilder {
                         Log.verbose("Found mixin target class: " + name);
                 }
 
+                // take the transformed bytecode of each target and everything it
+                // depends on, recursively; that set becomes the mixin "delta"
                 D8Resource resource = loadResource(id);
                 ClassFilter filter = new ClassFilter();
                 Cons2<String, Set<String>> process = (name, dependency) -> {
@@ -379,6 +436,7 @@ public class ArtBuilder {
                         continue;
                     process.get(name, dependency);
                 }
+                // keep expanding until no new dependency appears
                 Set<String> toProcess = new HashSet<>();
                 while (!dependency.isEmpty()) {
                     for (String name : dependency)
@@ -391,6 +449,7 @@ public class ArtBuilder {
                 sourceFilter.put(id, filter);
             }
 
+            // dex each mod again, this time including the mixin delta as source
             Map<String, Map<String, byte[]>> dexCode = new HashMap<>();
             for (var id : resourceMap.keySet()) {
                 if (id.equals("loader"))
@@ -414,11 +473,13 @@ public class ArtBuilder {
             if (systemResource != null)
                 systemResource.clear();
 
+            // merge base pool + delta into the final runtime dex
             for (var entry : dexCode.entrySet()) {
                 String id = entry.getKey();
                 var code = entry.getValue();
                 File dexFile;
 
+                // mods without mixins (or the vanilla game) reuse the packed base dex
                 boolean buildLink = code == null ||
                         (id.equals("mindustry") && Loader.game.container.mixin.size() == 1 &&
                                 Loader.game.container.mixin.get(0).container.id.equals("copper:core"));
@@ -441,6 +502,7 @@ public class ArtBuilder {
                     dex.build(dexFile);
                 }
 
+                // write the link file so the runtime entry points at the packed base dex
                 if (buildLink) {
                     File link = dexCache.getRuntimeDexLink(id);
                     try (var fos = new FileOutputStream(link)) {
@@ -449,12 +511,17 @@ public class ArtBuilder {
                 }
             }
         } catch (Throwable e) {
+            // a failed build must not leave a half-written runtime behind
             dexCache.clearCurrentRuntime();
             throw e;
         }
     }
 
     // lazy load resource
+    /**
+     * Opens the jar of {@code id} on first use and caches the opened resource.
+     * The mindustry resource also includes the compiled android components.
+     */
     private static D8Resource loadResource(String id) {
         D8Resource resource = resourceMap.get(id);
         if (resource != null)
@@ -478,6 +545,7 @@ public class ArtBuilder {
         }
     }
 
+    /** Loads a base dex pool, either from memory (desktop) or from the cache file. */
     private static BaseDexPool loadBaseDexPool(String id) {
         if (ArtBuilderPlatform.desktopMode) {
             return baseDexPoolMap.get(id);
@@ -493,6 +561,11 @@ public class ArtBuilder {
     }
 
     // only use in jvm compiler
+    /**
+     * Drops the {@code java.*}/{@code javax.*} classes of android.jar (they are
+     * provided by the java-stub-rt.jar), keeping the android classes plus the
+     * {@code javax.microedition} package.
+     */
     private static ClassFilter getAndroidJarFilter() {
         ClassFilter filter = new ClassFilter();
         filter.addRule("include javax.microedition.*");
@@ -502,6 +575,7 @@ public class ArtBuilder {
         return filter;
     }
 
+    /** Drops the desktop-only classes from the game jar. */
     private static ClassFilter getRawGameJarFilter() {
         ClassFilter filter = new ClassFilter();
         filter.addRule("exclude arc.backend.sdl.*");
@@ -511,6 +585,7 @@ public class ArtBuilder {
         return filter;
     }
 
+    /** Drops the build-time only classes from the loader jar (r8, jdt, ...). */
     private static ClassFilter getLoaderJarFilter() {
         ClassFilter filter = new ClassFilter();
         filter.addRule("exclude com.android.tools.*");
@@ -520,8 +595,17 @@ public class ArtBuilder {
         return filter;
     }
 
+    /**
+     * Creates a d8 {@link DexCompiler} for one mod.
+     *
+     * @param id          the mod (or {@code "mindustry"}) being compiled
+     * @param resource    its class resource
+     * @param withMixin   whether to add the mod's mixin containers as libraries
+     * @param deltaSource extra source filter selecting the mixin-transformed classes
+     */
     private static DexCompiler buildDexCompiler(String id, D8Resource resource, boolean withMixin, ClassFilter deltaSource) {
         DexCompiler compiler = new DexCompiler();
+        compiler.setId(id);
         compiler.addClassPath(resource);
 
         if (systemResource == null)
@@ -535,6 +619,9 @@ public class ArtBuilder {
         MixinContainer container = id.equals("mindustry") ?
                 Loader.game.container : Loader.mods.getModById(id).container;
 
+        // access mixins (interfaces with @Accessor/@Invoker) are needed by the
+        // containers that use them, so keep them as source; drop the rest of the
+        // consumed mixin packages
         Set<String> processedPackage = new HashSet<>();
         ClassFilter srcFilter = new ClassFilter();
         if (!id.equals("mindustry")) {
@@ -567,6 +654,7 @@ public class ArtBuilder {
             src = src.getFiltered(deltaSource);
         compiler.addSource(src);
 
+        // adding the mixin containers as libraries lets d8 link against their classes
         if (withMixin) {
             for (var mixin : container.mixin) {
                 var lib = loadResource(mixin.container.id)
@@ -575,6 +663,7 @@ public class ArtBuilder {
             }
         }
 
+        // every dependency's exported classes must be visible while compiling
         for (var dep : container.dependency) {
             var filter = dep.extraImport.copy();
             filter.addAllRules(dep.container.export);
@@ -597,6 +686,7 @@ public class ArtBuilder {
             throw new RuntimeException(desc + " is not existed: " + file.getAbsolutePath());
     }
 
+    /** Iterates over every entry of a zip file. */
     private static void walkZip(ZipFile file, ThrowableCons<ZipEntry> cons) {
         var e = file.entries();
         try {
@@ -607,6 +697,7 @@ public class ArtBuilder {
         }
     }
 
+    /** Reads a file embedded in the loader jar. */
     private static byte[] readInternalFile(String path) {
         try {
             return Streams.readAllBytes(loaderJar.getInputStream(loaderJar.getEntry(path)));
@@ -615,6 +706,7 @@ public class ArtBuilder {
         }
     }
 
+    /** Strips the leading module/source-root segment from a source zip path. */
     private static String getSrcFileRealPath(String path) {
         path = path.replace('\\', '/');
         if (path.startsWith("/"))

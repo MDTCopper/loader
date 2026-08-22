@@ -10,12 +10,22 @@ import copper.loader.Loader;
 import copper.loader.util.*;
 import java.io.*;
 
+/**
+ * The new base activity of the android backend: the builder rewrites the
+ * backend's {@code AndroidApplication} to extend this class.
+ *
+ * <p>It injects the packed game assets as an extra resource apk and redirects
+ * all storage locations to the loader's data folder, so the game behaves like a
+ * normal install while actually reading from the Copper data folder.</p>
+ */
 public class LoaderActivity extends Activity {
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
+        // a crash in the game should just close the activity, not show a dialog
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> finishAndRemoveTask());
         try {
+            // register the packed game assets (asset.jar) as an extra resource apk
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(ArtPlatform.gameAssetFile, ParcelFileDescriptor.MODE_READ_ONLY);
             ResourcesProvider provider = ResourcesProvider.loadFromApk(pfd);
             ResourcesLoader loader = new ResourcesLoader();
@@ -26,6 +36,7 @@ public class LoaderActivity extends Activity {
         }
     }
 
+    /** Sets the recents screen title and icon for the task. */
     @SuppressWarnings("deprecation")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +54,8 @@ public class LoaderActivity extends Activity {
             throw new RuntimeException(e);
         }
     }
+
+    // point every storage location at the Copper data folder
 
     @Override
     public File getFilesDir() {

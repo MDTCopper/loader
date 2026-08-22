@@ -80,6 +80,7 @@ public class Mods {
                     Mod m = constructor.get(file);
                     if (mod.containsKey(m.id))
                         throw new RuntimeException("found duplicated mod: " + m.id);
+                    // In vanilla mode only the core mod and vanilla Mindustry mods are loaded.
                     if (Loader.vars.vanillaMode) {
                         if (!(m instanceof MindustryMod) && !m.id.equals("copper:core"))
                             continue;
@@ -207,6 +208,7 @@ public class Mods {
         if (core == null)
             throw new RuntimeException("core mod is not found");
         core.version = Loader.vars.loaderVersion;
+        // Keep the core mod loaded but hidden from the vanilla game.
         if (Loader.vars.vanillaMode)
             core.hidden = true;
 

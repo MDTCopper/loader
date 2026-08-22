@@ -7,7 +7,8 @@ import java.nio.charset.*;
 /**
  * Logging utility with colorized output and configurable log level.
  *
- * <p>Supports four log levels: {@link Level#ERROR}, {@link Level#WARN}, {@link Level#INFO}, {@link Level#DEBUG}.
+ * <p>Supports five log levels: {@link Level#ERROR}, {@link Level#WARN}, {@link Level#INFO},
+ * {@link Level#DEBUG}, {@link Level#VERBOSE}.
  * The backend can be swapped (e.g., to colorless mode for non-interactive terminals).</p>
  */
 public class Log {
@@ -55,7 +56,10 @@ public class Log {
         }
     }
 
-    /** Logs to file. */
+    /**
+     * Starts logging to a file. Only the first call takes effect;
+     * later calls are ignored even with a different file.
+     */
     public static void setOutputFile(File file) {
         if (fileWriter != null)
             return;
@@ -88,6 +92,7 @@ public class Log {
         log(level, tag, formatted);
     }
 
+    /** Logs the stack trace of a throwable at error level. */
     public static void error(Throwable t) {
         StringWriter writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
@@ -144,14 +149,17 @@ public class Log {
         log(Level.DEBUG, tag, format, args);
     }
 
+    /** Logs a message at verbose level (more detailed than debug). */
     public static void verbose(String msg) {
         log(Level.VERBOSE, msg);
     }
 
+    /** Logs a tagged message at verbose level. */
     public static void verbose(String tag, String msg) {
         log(Level.VERBOSE, tag, msg);
     }
 
+    /** Logs a formatted message with a tag at verbose level. */
     public static void verbose(String tag, String format, Object... args) {
         log(Level.VERBOSE, tag, format, args);
     }

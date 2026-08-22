@@ -6,9 +6,22 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * Holds class files in memory, read from a jar in the constructor.
+ *
+ * <p>Unlike {@link ZipResource}, the bytecode is loaded eagerly into a map
+ * so it can be read many times without keeping the jar open.</p>
+ */
 public class BytecodeResource implements IResource {
+    /** Map of resource path (with slashes) to raw bytes. */
     public Map<String, byte[]> content;
 
+    /**
+     * Reads all {@code .class} entries of a jar into memory.
+     *
+     * @param file   the jar bytes
+     * @param filter optional class filter; {@code null} keeps everything
+     */
     public BytecodeResource(byte[] file, ClassFilter filter) {
         content = new HashMap<>();
         try (var zis = new ZipInputStream(new ByteArrayInputStream(file))) {

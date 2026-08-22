@@ -12,9 +12,9 @@ public class MixinInfo {
     public Container container;
     /** The raw mixin config JSON string. */
     public String config;
-
+    /** The package that holds the mixin classes. */
     public String packageName;
-
+    /** Names of the mixin classes listed in the config. */
     public List<String> mixinName;
 
     public MixinInfo() {

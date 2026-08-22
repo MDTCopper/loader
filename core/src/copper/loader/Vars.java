@@ -28,12 +28,19 @@ public class Vars {
     /** The installed loader version, read from {@code version.properties}. */
     public SemanticVersion loaderVersion;
 
+    /** When {@code true}, loads the vanilla game without the copper core mod. */
     public boolean vanillaMode = false;
 
+    /** When {@code false}, skips writing logs to the file. */
     public boolean writeFileLog = true;
 
+    /** Whether {@link #init()} has already run. */
     private boolean inited = false;
 
+    /**
+     * Sets up all runtime folders, the loader container, and the loader version.
+     * Only does the work once: later calls are ignored.
+     */
     public void init() {
         if (inited)
             return;
@@ -64,6 +71,7 @@ public class Vars {
         inited = true;
     }
 
+    /** Starts the file logger, unless it has been disabled. */
     public void setupFileLogger() {
         if (writeFileLog)
             Log.setOutputFile(new File(gameDataFolder, "last_log.txt"));

@@ -15,9 +15,12 @@ import copper.loader.util.*;
  */
 public interface IMixinConfigReader {
     /**
-     * @param version the target version to filter mixin entries against
-     * @param obj     the parsed mixin config JSON object, modified in place
-     * @return the processed JSON config string with version-filtering resolved to a flat list
+     * Reads and processes a mixin config for the given container.
+     *
+     * @param container the container that owns the mixin config
+     * @param version   the target version to filter mixin entries against
+     * @param obj       the parsed mixin config JSON object, modified in place
+     * @return the processed config wrapped in a {@link MixinInfo}
      */
     MixinInfo read(Container container, Version version, Jval obj);
 }
