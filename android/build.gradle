@@ -15,7 +15,7 @@ import org.objectweb.asm.commons.*
 import java.util.jar.*
 import java.util.zip.*
 
-apply plugin: "java"
+apply plugin: 'java-library'
 
 evaluationDependsOn(':mod')
 evaluationDependsOn(':tools')

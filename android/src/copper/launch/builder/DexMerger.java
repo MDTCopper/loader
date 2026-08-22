@@ -21,6 +21,7 @@ public class DexMerger {
         bytecode = new ArrayList<>();
         builder = D8Command.builder(new MergerLog());
         builder.setMinApiLevel(30);
+        id = "unknown";
     }
 
     /** Sets the id used in log tags. */

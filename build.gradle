@@ -17,7 +17,7 @@ allprojects {
 }
 
 subprojects {
-    if (project.name != "desktop") {
+    if (project.name != "tools") {
         apply plugin: 'java-library'
         apply plugin: "maven-publish"
 
