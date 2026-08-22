@@ -103,7 +103,7 @@ public abstract class CMods {
         ci.setReturnValue(false);
     }
 
-    @Redirect(method = "loadMod", at = @At(value = "INVOKE", target = "Lmindustry/core/Platform;loadJar(Larc/files/Fi;Ljava/lang/ClassLoader;)Ljava/lang/ClassLoader;"))
+    @Redirect(method = "loadMod(Larc/files/Fi;ZZ)Lmindustry/mod/Mods$LoadedMod;", at = @At(value = "INVOKE", target = "Lmindustry/core/Platform;loadJar(Larc/files/Fi;Ljava/lang/ClassLoader;)Ljava/lang/ClassLoader;"))
     private ClassLoader cLoadMdtModJar(Platform platform, Fi jar, ClassLoader loader) {
         copper.loader.mod.Mod mod = Loader.mods.getModByFile(jar.file());
         if (mod instanceof MindustryMod && !mod.main.isEmpty())

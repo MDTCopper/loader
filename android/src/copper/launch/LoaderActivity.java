@@ -65,6 +65,4 @@ public class LoaderActivity extends Activity {
         cache.mkdirs();
         return cache;
     }
-
-
 }
