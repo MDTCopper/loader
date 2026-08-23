@@ -20,7 +20,7 @@ public class JvmPlatform implements IPlatform {
     /** Path to the game jar file. */
     public static File gameJar;
     /** Game data directory (default: {@code .mindustry}). */
-    public static File gameData = new File(".mindustry");
+    public static File gameData;
 
     @Override
     public String extractLibrary(byte[] library, String name) {

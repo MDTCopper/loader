@@ -26,16 +26,24 @@ public class JvmLauncher {
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> JvmPlatform.gameData = new File(path));
             parser.addFlag("d", "debug", "Enable debug log output", () -> Log.setLevel(Log.Level.DEBUG));
             parser.addFlag(null, "verbose", "Enable verbose log output", () -> Log.setLevel(Log.Level.VERBOSE));
-            parser.addFlag("v", "version", "Display loader version", JvmLauncher::displayVersion);
+            parser.addFlag("v", "version", "Display loader version then exit", JvmLauncher::displayVersion);
             parser.addFlag(null, "vanilla", "Load the vanilla game", () -> Loader.vars.vanillaMode = true);
+            parser.addFlag(null, "init", "Create data folders then exit");
             parser.addOption(null, "mixin-log", "Enable mixin log for mod", "modId");
             parser.addOption(null, "mixin-flag", "Add mixin flag for mod", "modId,flag1,flag2,...");
             parser.parse(args);
 
             if (JvmPlatform.gameJar == null)
                 throw new RuntimeException("no game jar provided");
+            if (JvmPlatform.gameData == null)
+                JvmPlatform.gameData = new File(".mindustry");
 
             Loader.platform = new JvmPlatform();
+            if (parser.hasOption("init")) {
+                Loader.vars.init();
+                System.exit(0);
+            }
+
             Loader.init();
 
             for (String id : parser.getOptionValues("mixin-log")) {
@@ -60,8 +68,7 @@ public class JvmLauncher {
                     .getDeclaredMethod("main", String[].class)
                     .invoke(null, (Object) parser.getPositionalArgs().toArray(String[]::new));
         } catch (Throwable e) {
-            Log.error(e.getMessage());
-            e.printStackTrace();
+            Log.error(e);
             System.exit(1);
         }
     }
@@ -81,9 +88,9 @@ public class JvmLauncher {
 
     /** Displays the loader version by initializing a minimal platform. */
     private static void displayVersion() {
-        JvmPlatform.gameJar = new File("");
         Loader.platform = new JvmPlatform();
         Loader.vars = new Vars();
+        Loader.vars.init();
         Log.info("CopperLoader v" + Loader.vars.loaderVersion.toString());
         System.exit(0);
     }

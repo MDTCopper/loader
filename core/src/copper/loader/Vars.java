@@ -51,9 +51,11 @@ public class Vars {
         copperModFolder = new File(loaderDataFolder, "mods");
         copperModDataFolder = new File(loaderDataFolder, "datas");
 
-        gameModFolder.mkdirs();
-        copperModFolder.mkdirs();
-        copperModDataFolder.mkdirs();
+        if (gameDataFolder != null) {
+            gameModFolder.mkdirs();
+            copperModFolder.mkdirs();
+            copperModDataFolder.mkdirs();
+        }
 
         loaderContainer = Loader.platform.createLoaderContainer();
         loaderContainer.id = "loader";
