@@ -68,7 +68,7 @@ jar {
     dependsOn configurations.runtimeClasspath
     dependsOn shrinkArtJar
 
-    archiveFileName = "${project.name}-desktop.jar"
+    archiveBaseName = "${project.name}-desktop"
 
     manifest {
         attributes 'Main-Class': 'copper.launch.ArtBuilder'
@@ -113,7 +113,7 @@ processResources.dependsOn(':tools:genJrtStub')
 tasks.register('patchAndroidJar') {
     dependsOn jar
     doLast {
-        def inputJarFile = file("build/libs/${project.name}-desktop.jar")
+        def inputJarFile = file("build/libs/${project.name}-desktop-${project.version}.jar")
         def outputJarFile = file("build/libs/${project.name}-android-source.jar")
         outputJarFile.delete()
 
@@ -230,7 +230,7 @@ tasks.register('jarAndroid') {
         def libsDir = new File(project.projectDir, "build/libs")
         def baseJar = new File(libsDir, "${projectName}-android-base.jar")
         def desugarJar = new File(libsDir, "${projectName}-android-desugar.jar")
-        def finalJar = new File(libsDir, "${projectName}-android.jar")
+        def finalJar = new File(libsDir, "${projectName}-dex.jar")
 
         // 3. combine all dex files into one jar, numbered classes.dex, classes2.dex, ...
         int globalDexIndex = 1
@@ -261,12 +261,11 @@ tasks.register('deploy', Jar) {
     dependsOn jarAndroid
     dependsOn jar
 
-    archiveFileName = "${project.name}.jar"
-    def projectName = project.name
+    archiveBaseName = "${project.name}"
 
     from {[
-            zipTree("build/libs/${projectName}-desktop.jar"),
-            zipTree("build/libs/${projectName}-android.jar")
+            zipTree("build/libs/${project.name}-desktop-${project.version}.jar"),
+            zipTree("build/libs/${project.name}-dex.jar")
     ]}
 }
 
