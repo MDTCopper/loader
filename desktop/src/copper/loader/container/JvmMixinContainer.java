@@ -20,13 +20,16 @@ import java.util.concurrent.*;
 public class JvmMixinContainer extends MixinContainer {
     protected ContainerClassLoader loader;
 
-    public JvmMixinContainer() {
+    @Override
+    public void init() {
         loader = new ContainerClassLoader();
-        transformedBytecode = new ConcurrentHashMap<>();
+        super.init();
     }
 
     @Override
     public Class<?> loadOwnClass(String name) {
+        if (loader == null)
+            return null;
         try {
             return loader.loadOwnClass(name);
         } catch (ClassNotFoundException e) {
@@ -52,7 +55,7 @@ public class JvmMixinContainer extends MixinContainer {
      */
     public class ContainerClassLoader extends ClassLoader {
         public ContainerClassLoader() {
-            super(null);
+            super(JvmMixinContainer.this.id, null);
         }
 
         public Class<?> loadOwnClass(String name) throws ClassNotFoundException {

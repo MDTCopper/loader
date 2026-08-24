@@ -1,5 +1,6 @@
 package copper.core.mod;
 
+import copper.core.util.*;
 import copper.loader.mod.Mod;
 import mindustry.mod.*;
 
@@ -8,6 +9,7 @@ import mindustry.mod.*;
  * Copper {@link copper.loader.mod.Mod}. Used to wire Copper mod metadata into Mindustry's
  * mod registry.
  */
+@Internal
 public class CopperModMeta extends Mods.ModMeta {
     /** The originating Copper mod. */
     public Mod copperMod;

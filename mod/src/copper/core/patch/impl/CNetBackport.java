@@ -11,7 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 /**
  * Mixin patch: registers the {@link ExtendedPacket} wrapper during {@link Net} class initialization.
  */
-@Mixin(Net.class)
+@Pseudo  // shut the ap up
+@Mixin(targets = "mindustry.net.Net")
 public abstract class CNetBackport {
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void cRegisterExtendedPacket(CallbackInfo ci) {

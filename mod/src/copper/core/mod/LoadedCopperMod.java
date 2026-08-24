@@ -12,6 +12,7 @@ import copper.loader.mod.Mod;
 /**
  * Bridges a Copper {@link Mod} into Mindustry's {@link Mods.LoadedMod} system.
  */
+@Internal
 public class LoadedCopperMod extends Mods.LoadedMod {
     private static Json json = new Json();
     public Mod copperMod;

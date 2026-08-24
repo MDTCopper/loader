@@ -41,13 +41,7 @@ public class Copper {
      */
     public static @Nullable Mod getMod(Class<? extends CopperMod> clazz) {
         String id = null;
-        String name = clazz.getName();
-        int i = name.indexOf('.');
-        if (i != -1)
-            i = name.indexOf('.', i + 1);
-        if (i != -1)
-            id = name.substring(0, i);
-        return id == null ? null : Loader.mods.getModById(id.replace('.', ':'));
+        return Loader.mods.getModByClassLoader(clazz.getClassLoader());
     }
 
     /** Like {@link #getMod}, but throws if the mod is not found. */

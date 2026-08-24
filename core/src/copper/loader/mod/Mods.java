@@ -24,12 +24,14 @@ public class Mods {
     private Map<String, Mod> mod;
     private List<Mod> orderedMod;
     private Map<String, Mod> pathMap;
+    private Map<ClassLoader, Mod> clMap;
     private State state;
 
     public Mods() {
         mod = new HashMap<>();
         orderedMod = new ArrayList<>();
         pathMap = new HashMap<>();
+        clMap = new HashMap<>();
         state = State.None;
     }
 
@@ -45,6 +47,13 @@ public class Mods {
      */
     public Mod getModByFile(File file) {
         return pathMap.get(file.getAbsolutePath());
+    }
+
+    /**
+     * Looks up a mod by its classloader.
+     */
+    public Mod getModByClassLoader(ClassLoader cl) {
+        return clMap.get(cl);
     }
 
     /**
@@ -89,7 +98,7 @@ public class Mods {
                     pathMap.put(file.getAbsolutePath(), m);
                 } catch (Throwable e) {
                     Log.error("failed to read mod: " + file.getAbsolutePath());
-                    e.printStackTrace();
+                    Log.error(e);
                 }
             }
         }
@@ -224,12 +233,14 @@ public class Mods {
     }
 
     /**
-     * Calls {@link Mod#init()} on every mod in load order.
+     * Calls {@link Mod#init()} on every mod in load order. And build
+     * the mapping from classloader to mod.
      */
     public void init() {
         if (state != State.Read)
             return;
         eachMod(Mod::init);
+        eachMod(m -> clMap.put(m.container.getClassLoader(), m));
         state = State.Initialised;
     }
 
