@@ -59,10 +59,12 @@ public abstract class CMods {
     /** Registers Copper extended packets for all enabled Copper mods after loading. */
     @Inject(method = "load", at = @At("RETURN"))
     private void cLoadRegisterExtendedPackets(CallbackInfo ci) {
-        Vars.mods.eachEnabled(mod -> {
-            if (mod.main instanceof CopperMod copperMod)
-                copperMod.registerPackets();
-        });
+        if (!Loader.vars.vanillaMode) {
+            Vars.mods.eachEnabled(mod -> {
+                if (mod.main instanceof CopperMod copperMod)
+                    copperMod.registerPackets();
+            });
+        }
     }
 
     /** Prevents mod removal from the in-game UI. */

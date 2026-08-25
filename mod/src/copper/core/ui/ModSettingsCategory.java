@@ -37,11 +37,11 @@ public class ModSettingsCategory extends SettingsMenuDialog.SettingsCategory {
         for (var cat : Vars.ui.settings.getCategories()) {
             if (cat instanceof ModSettingsCategory)
                 continue;
-            if (cat instanceof ICopperSettingsCategory ccat && ccat.getLoadedMod() != null) {
-                var list = modMap.get(ccat.getLoadedMod());
+            if (cat instanceof ICopperSettingsCategory ccat && ccat.getCopperDetectedLoadedMod() != null) {
+                var list = modMap.get(ccat.getCopperDetectedLoadedMod());
                 if (list == null) {
                     list = new Seq<>();
-                    modMap.put(ccat.getLoadedMod(), list);
+                    modMap.put(ccat.getCopperDetectedLoadedMod(), list);
                 }
                 list.add(cat);
             } else {
@@ -49,8 +49,8 @@ public class ModSettingsCategory extends SettingsMenuDialog.SettingsCategory {
             }
         }
 
-        modMap.orderedKeys().sort(Structs.comparing(m -> m.meta.displayName == null ? m.meta.name : m.meta.displayName)).reverse();
-        unknownModList.sort(Structs.comparing(c -> c.name)).reverse();
+        modMap.orderedKeys().sort(Structs.comparing(m -> m.meta.displayName == null ? m.meta.name : m.meta.displayName));
+        unknownModList.sort(Structs.comparing(c -> c.name));
 
         field.setText(searchText = "");
         rebuild();

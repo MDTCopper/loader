@@ -15,7 +15,7 @@ import java.io.*;
  */
 @Mixin(Vars.class)
 public class CVars {
-    @ModifyVariable(method = "loadLogger", at = @At("STORE"), ordinal = 1)
+    @ModifyVariable(method = "loadLogger", at = @At("STORE"), name = "stags")
     private static String[] cApplyNonConsoleTags(String[] stags) {
         if (System.console() != null)
             return stags;

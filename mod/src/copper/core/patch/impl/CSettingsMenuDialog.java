@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 import java.util.*;
 
 @Mixin(SettingsMenuDialog.class)
-public class CSettingsMenuDialog {
+public abstract class CSettingsMenuDialog {
     @Shadow
     private Seq<SettingsMenuDialog.SettingsCategory> categories;
     @Unique

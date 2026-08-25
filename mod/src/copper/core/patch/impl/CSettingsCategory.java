@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 
 @Mixin(SettingsMenuDialog.SettingsCategory.class)
-public class CSettingsCategory implements ICopperSettingsCategory {
+public abstract class CSettingsCategory implements ICopperSettingsCategory {
     @Unique
     private String modName;
 
@@ -46,19 +46,19 @@ public class CSettingsCategory implements ICopperSettingsCategory {
     }
 
     @Override
-    public Mods.LoadedMod getLoadedMod() {
+    public Mods.LoadedMod getCopperDetectedLoadedMod() {
         if (Vars.mods == null || modName == null)
             return null;
         return Vars.mods.getMod(modName);
     }
 
     @Override
-    public String getModName() {
+    public String getCopperDetectedModName() {
         return modName;
     }
 
     @Override
-    public void setModName(String modName) {
+    public void setCopperDetectedModName(String modName) {
         this.modName = modName;
     }
 }
