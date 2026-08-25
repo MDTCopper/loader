@@ -28,5 +28,25 @@ public class CopperSettings extends Settings {
             hasErrored = true;
         }
         loaded = true;
+        modified = false;
+    }
+
+    @Override
+    public synchronized void clear() {
+        super.clear();
+        modified = true;
+        autosave();
+    }
+
+    @Override
+    public synchronized void put(String name, Object object) {
+        super.put(name, object);
+        autosave();
+    }
+
+    @Override
+    public synchronized void remove(String name) {
+        super.remove(name);
+        autosave();
     }
 }

@@ -28,7 +28,7 @@ public class Vars {
     /** The installed loader version, read from {@code version.properties}. */
     public SemanticVersion loaderVersion;
 
-    /** When {@code true}, loads the vanilla game without the copper core mod. */
+    /** When {@code true}, loads the vanilla game without the non-hidden copper core mod. */
     public boolean vanillaMode = false;
 
     /** When {@code false}, skips writing logs to the file. */
