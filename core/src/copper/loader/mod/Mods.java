@@ -91,7 +91,7 @@ public class Mods {
                         throw new RuntimeException("found duplicated mod: " + m.id);
                     // In vanilla mode only the hidden copper mods and vanilla Mindustry mods are loaded.
                     if (Loader.vars.vanillaMode) {
-                        if (!(m instanceof MindustryMod) && !m.hidden)
+                        if (!(m instanceof MindustryMod) && !m.hidden && !m.id.equals("copper:core"))
                             continue;
                     }
                     mod.put(m.id, m);

@@ -26,9 +26,11 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 @Mixin(Mods.class)
 public abstract class CMods {
     @Shadow
-    Seq<Mods.LoadedMod> mods;
+    private Seq<Mods.LoadedMod> mods;
     @Shadow
-    ObjectMap<Class<?>, Mods.ModMeta> metas;
+    private ObjectMap<Class<?>, Mods.ModMeta> metas;
+    @Shadow
+    private Seq<Mods.LoadedMod> lastOrderedMods;
 
     /**
      * Loads Copper mods and injects them into Mindustry's mod list.
@@ -44,6 +46,8 @@ public abstract class CMods {
                 LoadedCopperMod loaded = LoadedCopperMod.build(mod);
                 metas.put(loaded.main.getClass(), loaded.meta);
                 loadedMods.add(loaded);
+                // invalidate ordered mods cache
+                lastOrderedMods = null;
             }
         });
         mods.addAll(loadedMods);
