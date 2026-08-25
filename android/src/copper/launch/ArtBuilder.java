@@ -374,8 +374,7 @@ public class ArtBuilder {
                         Loader.game.container : Loader.mods.getModById(id).container;
                 if (container.mixin.isEmpty())
                     continue;
-                // vanilla game: only the copper core mod's mixins are registered,
-                // and the packed base dex already contains their output
+
                 if (id.equals("mindustry") && sourceFilter.isEmpty()
                         && container.mixin.size() == 1 && container.mixin.get(0).container.id.equals("copper:core")
                         && dexCache.getPackedBaseDexFile("mindustry", getGamePackedBaseDexVersion()).exists())
@@ -547,7 +546,7 @@ public class ArtBuilder {
 
     /** Loads a base dex pool, either from memory (desktop) or from the cache file. */
     private static BaseDexPool loadBaseDexPool(String id) {
-        if (ArtBuilderPlatform.desktopMode) {
+        if (ArtBuilderPlatform.desktopMode && baseDexPoolMap.containsKey(id)) {
             return baseDexPoolMap.get(id);
         } else {
             Version version = id.equals("mindustry") ?

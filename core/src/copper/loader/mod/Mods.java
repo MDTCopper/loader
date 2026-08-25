@@ -94,6 +94,9 @@ public class Mods {
                         if (!(m instanceof MindustryMod) && !m.hidden && !m.id.equals("copper:core"))
                             continue;
                     }
+                    // Skip non-java mods
+                    if (m.main.isEmpty())
+                        continue;
                     mod.put(m.id, m);
                     pathMap.put(file.getAbsolutePath(), m);
                 } catch (Throwable e) {
