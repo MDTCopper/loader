@@ -20,13 +20,13 @@ public class ModSettingsCategory extends SettingsMenuDialog.SettingsCategory {
     private String searchText;
     private Table settingsTable;
     private TextField field;
-    private ObjectMap<Mods.LoadedMod, Seq<SettingsMenuDialog.SettingsCategory>> modMap;
+    private OrderedMap<Mods.LoadedMod, Seq<SettingsMenuDialog.SettingsCategory>> modMap;
     private Seq<SettingsMenuDialog.SettingsCategory> unknownModList;
 
     public ModSettingsCategory() {
         super(CoreMod.bundles.get("settings.mod-settings"), Icon.book, t -> {});
         searchText = "";
-        modMap = new ObjectMap<>();
+        modMap = new OrderedMap<>();
         unknownModList = new Seq<>();
         table = new SettingsTable();
         build();
@@ -48,6 +48,9 @@ public class ModSettingsCategory extends SettingsMenuDialog.SettingsCategory {
                 unknownModList.add(cat);
             }
         }
+
+        modMap.orderedKeys().sort(Structs.comparing(m -> m.meta.displayName == null ? m.meta.name : m.meta.displayName)).reverse();
+        unknownModList.sort(Structs.comparing(c -> c.name)).reverse();
 
         field.setText(searchText = "");
         rebuild();

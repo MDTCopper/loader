@@ -58,7 +58,7 @@ public class ExtendedPacket extends Packet {
     @Override
     public boolean allow(boolean server) {
         if (target == null)
-            return false;
+            return true;
         return target.allow(server);
     }
 
