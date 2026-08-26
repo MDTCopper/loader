@@ -32,4 +32,8 @@ public class Structs {
         arr.set(a, arr.get(b));
         arr.set(b, t);
     }
+
+    public static <T, U extends Comparable<? super U>> Comparator<T> comparing(Func<? super T, ? extends U> keyExtractor){
+        return (c1, c2) -> keyExtractor.get(c1).compareTo(keyExtractor.get(c2));
+    }
 }

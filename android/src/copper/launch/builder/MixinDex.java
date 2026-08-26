@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.zip.*;
 
 /**
- * Merges the base dex pool of a mod with its mixin delta into the final runtime dex jar.
+ * Merges the base dex pool of a mod with its mixin delta into the final mixin dex jar.
  *
  * <p>The {@link DexMerger} re-packages all dex entries (base + delta) into one jar
  * with the usual {@code classes.dex}, {@code classes2.dex}, ... naming.</p>
@@ -18,7 +18,7 @@ public class MixinDex extends CodePool {
         this.base = base;
     }
 
-    /** Builds the runtime dex jar, deduplicating classes by name. */
+    /** Builds the mixin dex jar, deduplicating classes by name. */
     public void build(File jar) {
         try {
             DexMerger merger = new DexMerger();

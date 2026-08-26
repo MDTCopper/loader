@@ -10,7 +10,7 @@ import java.util.zip.*;
  * A {@link CodePool} that can be stored as a jar of dex entries.
  *
  * <p>This is the per-mod dex result before any mixin is applied. It is written
- * once per mod/version and later merged into the runtime dex files.</p>
+ * once per mod/version and later merged into the mixin dex files.</p>
  */
 public class BaseDexPool extends CodePool {
     public BaseDexPool() {

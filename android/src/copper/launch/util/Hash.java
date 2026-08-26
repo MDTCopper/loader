@@ -3,7 +3,7 @@ package copper.launch.util;
 import java.io.*;
 import java.security.*;
 
-/** Small sha256 helper, used to name the runtime dex folders. */
+/** Small sha256 helper used to derive the dex cache file and folder names. */
 public class Hash {
     private static final char[] hexMap = "0123456789abcdef".toCharArray();
 

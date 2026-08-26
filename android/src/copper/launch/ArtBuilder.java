@@ -23,7 +23,8 @@ import java.util.zip.*;
  * <ol>
  *   <li>{@code --init}: compile the android components, pack game assets and native libs.</li>
  *   <li>{@code --build}: load every enabled mod, apply their mixins to the bytecode,
- *       dex each mod with d8, and merge the results into the runtime dex jars.</li>
+ *       dex each mod with d8, and merge the results into per-mod mixin dex jars;
+ *       a runtime meta then maps every mod to its jar.</li>
  * </ol>
  *
  * <p>The result is a cache folder that {@link ArtLauncher} later loads on the device,
@@ -42,8 +43,11 @@ public class ArtBuilder {
     private static List<D8Resource> systemResource = new ArrayList<>();
     /** In-memory base dex pools, only kept on the desktop to save heap. */
     private static Map<String, BaseDexPool> baseDexPoolMap = new HashMap<>();
+    /** Map of mod id to its mixin dex metadata, built in {@link #buildMixinDex()}. */
     private static Map<String, MixinDexMeta> mixinDexMetaMap = new HashMap<>();
+    /** Map of mod id to the class filter selecting its mixin-transformed classes. */
     private static Map<String, ClassFilter> deltaSourceFilter = new HashMap<>();
+    /** Whether the loader environment has been booted for mixin application. */
     private static boolean loaderLaunched = false;
     /** The d8 desugared-lib config json, read from an internal jar. */
     private static String desugarConfig;
@@ -329,7 +333,7 @@ public class ArtBuilder {
 
     /**
      * Dexes every mod once (without mixins) and stores the result as its base dex pool.
-     * Later, runtime dexes are built by merging these pools with the mixin output.
+     * Later, mixin dexes are built by merging these pools with the mixin output.
      */
     private static void buildBaseDexPool() {
         Log.debug("Building base dex pools.");
@@ -358,6 +362,11 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Applies the mixins targeting {@code id} and collects the transformed classes
+     * (targets plus their transitive dependencies) into a delta source filter.
+     * Computed once per mod and cached in {@link #deltaSourceFilter}.
+     */
     private static void applyMixin(String id) {
         if (deltaSourceFilter.containsKey(id))
             return;
@@ -439,6 +448,11 @@ public class ArtBuilder {
         deltaSourceFilter.put(id, filter);
     }
 
+    /**
+     * Dexes each mod again with its mixin delta as extra source and merges the
+     * result with the mod's base dex pool into a cached mixin dex jar, writing
+     * its {@link MixinDexMeta} next to it.
+     */
     private static void buildMixinDex() {
         Log.debug("Building mixin dex.");
         for (var id : resourceMap.keySet()) {
@@ -516,6 +530,10 @@ public class ArtBuilder {
         }
     }
 
+    /**
+     * Writes the runtime meta for the current mod set: every loaded mod paired
+     * with the hash of the mixin dex jar it must load.
+     */
     private static void buildRuntime() {
         Log.debug("Building runtime.");
         RuntimeMeta meta = new RuntimeMeta();

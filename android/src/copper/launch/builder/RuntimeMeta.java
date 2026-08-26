@@ -3,15 +3,24 @@ package copper.launch.builder;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Describes the dex set of the currently enabled mods: the ordered mod list and,
+ * for each mod, the sha256 hash of the mixin dex jar to load at runtime. Stored
+ * as the {@code runtime/<hash>} file of the dex cache.
+ */
 public class RuntimeMeta {
+    /** Loaded mods, in load order. */
     public List<ModDescriptor> mods;
+    /** Maps each mod id to the hash of its mixin dex jar ({@code mixin/<id>/<hash>/rt.jar}). */
     public Map<String, String> jarLinks;
 
+    /** Creates an empty runtime meta. */
     public RuntimeMeta() {
         mods = new ArrayList<>();
         jarLinks = new HashMap<>();
     }
 
+    /** Loads a runtime meta from the given file. */
     public RuntimeMeta(File file) {
         this();
         try (var dis = new DataInputStream(new FileInputStream(file))) {
@@ -32,6 +41,7 @@ public class RuntimeMeta {
         }
     }
 
+    /** Serializes this runtime meta to the given file. */
     public void write(File file) {
         try (var dos = new DataOutputStream(new FileOutputStream(file))) {
             dos.writeInt(mods.size());
