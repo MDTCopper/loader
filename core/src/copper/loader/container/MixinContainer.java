@@ -22,7 +22,7 @@ import java.util.concurrent.*;
  */
 public abstract class MixinContainer extends Container {
     /** Mixin configurations targeting this container. */
-    public List<MixinInfo> mixin;
+    public List<MixinInfo> mixins;
 
     protected IMixinEngine mixinEngine;
     protected boolean mixinLogEnabled;
@@ -30,7 +30,7 @@ public abstract class MixinContainer extends Container {
     protected Map<String, byte[]> transformedBytecode;
 
     MixinContainer() {
-        mixin = new ArrayList<>();
+        mixins = new ArrayList<>();
         mixinEngine = null;
         mixinLogEnabled = false;
         mixinFlag = new ArrayList<>();
@@ -42,7 +42,7 @@ public abstract class MixinContainer extends Container {
      */
     @Override
     public void init() {
-        if (!mixin.isEmpty()) {
+        if (!mixins.isEmpty()) {
             mixinEngine = Loader.platform.createMixinEngine();
             mixinEngine.setBytecodeProvider(name -> {
                 if (name.startsWith("/"))
@@ -60,7 +60,7 @@ public abstract class MixinContainer extends Container {
             mixinEngine.bootstrap();
             for (String flag : mixinFlag)
                 mixinEngine.setFlag(flag);
-            for (MixinInfo info : mixin)
+            for (MixinInfo info : mixins)
                 mixinEngine.addConfig(info.config, info.container.id.replace(':', '-'));
         }
         super.init();
@@ -73,7 +73,7 @@ public abstract class MixinContainer extends Container {
     public Class<?> getAccessibleClass(String name) {
         Class<?> c = null;
         // Search mixin target containers first.
-        for (MixinInfo info : mixin) {
+        for (MixinInfo info : mixins) {
             c = info.container.loadPublicOwnClass(name);
             if (c != null)
                 break;
@@ -91,7 +91,7 @@ public abstract class MixinContainer extends Container {
     public byte[] getAccessibleBytecode(String name) {
         byte[] code = null;
         // Search mixin target containers first.
-        for (MixinInfo info : mixin) {
+        for (MixinInfo info : mixins) {
             code = info.container.getPublicOwnBytecode(name);
             if (code != null)
                 break;

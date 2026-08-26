@@ -5,7 +5,6 @@ import arc.struct.*;
 import arc.util.*;
 import arc.util.serialization.*;
 import copper.core.util.*;
-import mindustry.*;
 import mindustry.mod.*;
 import copper.loader.mod.Mod;
 
@@ -41,7 +40,7 @@ public class LoadedCopperMod extends Mods.LoadedMod {
 
         if (!mod.id.equals("copper:core")) {
             Seq<String> dependencies = Seq.with("copper-copper-core");
-            for (var desc : mod.dependency) {
+            for (var desc : mod.dependencies) {
                 String name = desc.id;
                 if (desc.id.equals("mindustry") || desc.id.equals("loader"))
                     continue;

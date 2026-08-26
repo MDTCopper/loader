@@ -102,7 +102,7 @@ public class MindustryMod extends Mod {
                 info.extraImport.addRule("include *");
                 dependencyInfoCache.put(m.id, info);
             }
-            container.dependency.add(info);
+            container.dependencies.add(info);
         });
     }
 }

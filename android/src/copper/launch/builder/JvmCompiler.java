@@ -24,24 +24,24 @@ import java.util.zip.*;
  * collected into a map by class name.</p>
  */
 public class JvmCompiler {
-    private Map<String, byte[]> bytecode;
-    private Map<String, String> setting;
-    private ArrayList<SourceFile> source;
+    private Map<String, byte[]> bytecodes;
+    private Map<String, String> settings;
+    private ArrayList<SourceFile> sources;
     private NameEnv env;
-    private ArrayList<String> error;
+    private ArrayList<String> errors;
 
     public JvmCompiler() {
-        bytecode = new HashMap<>();
-        setting = new HashMap<>();
-        source = new ArrayList<>();
+        bytecodes = new HashMap<>();
+        settings = new HashMap<>();
+        sources = new ArrayList<>();
         env = new NameEnv();
-        error = new ArrayList<>();
-        setting.put(CompilerOptions.OPTION_Encoding, "UTF-8");
+        errors = new ArrayList<>();
+        settings.put(CompilerOptions.OPTION_Encoding, "UTF-8");
     }
 
     /** Adds a source file by its full class name. */
     public void addSource(String fullClassName, String code) {
-        source.add(new SourceFile(fullClassName, code));
+        sources.add(new SourceFile(fullClassName, code));
     }
 
     /** Adds a source file, treating {@code path} as relative to {@code basePath}. */
@@ -55,9 +55,9 @@ public class JvmCompiler {
 
     /** Sets the source/compliance/target java version (e.g. "17"). */
     public void setVersion(String source, String bytecode) {
-        setting.put(CompilerOptions.OPTION_Source, source);
-        setting.put(CompilerOptions.OPTION_TargetPlatform, bytecode);
-        setting.put(CompilerOptions.OPTION_Compliance, source);
+        settings.put(CompilerOptions.OPTION_Source, source);
+        settings.put(CompilerOptions.OPTION_TargetPlatform, bytecode);
+        settings.put(CompilerOptions.OPTION_Compliance, source);
     }
 
     public void addClassPath(byte[] jar) {
@@ -78,27 +78,27 @@ public class JvmCompiler {
 
     /** Runs the compiler. Errors are collected and reported via {@link #getErrors()}. */
     public void compile() {
-        CompilerOptions options = new CompilerOptions(setting);
+        CompilerOptions options = new CompilerOptions(settings);
         IErrorHandlingPolicy policy = DefaultErrorHandlingPolicies.proceedWithAllProblems();
         IProblemFactory problemFactory = new DefaultProblemFactory(Locale.getDefault());
         ICompilerRequestor requestor = new CompilerRequestor();
         Compiler compiler = new Compiler(env, policy, options, requestor, problemFactory);
-        compiler.compile(source.toArray(ICompilationUnit[]::new));
+        compiler.compile(sources.toArray(ICompilationUnit[]::new));
     }
 
     /** Whether the last compile produced any errors. */
     public boolean hasErrors() {
-        return !error.isEmpty();
+        return !errors.isEmpty();
     }
 
     /** The compile error messages. */
     public List<String> getErrors() {
-        return error;
+        return errors;
     }
 
     /** Map of class name → compiled bytecode. */
     public Map<String, byte[]> getBytecodes() {
-        return bytecode;
+        return bytecodes;
     }
 
     /** Collects the compiled classes (or the error messages) of each unit. */
@@ -107,7 +107,7 @@ public class JvmCompiler {
         public void acceptResult(CompilationResult result) {
             if (result.hasErrors()) {
                 for (var p : result.getProblems())
-                    error.add(p.toString());
+                    errors.add(p.toString());
                 return;
             }
             for (ClassFile classFile : result.getClassFiles()) {
@@ -118,7 +118,7 @@ public class JvmCompiler {
                         fullClassName.append('.');
                     fullClassName.append(compoundName[i]);
                 }
-                bytecode.put(fullClassName.toString(), classFile.getBytes());
+                bytecodes.put(fullClassName.toString(), classFile.getBytes());
             }
         }
     }

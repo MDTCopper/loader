@@ -19,15 +19,15 @@ import java.util.function.*;
 public class DexCompiler {
     /** Id used only for log tags. */
     private String id;
-    private final Map<String, byte[]> bytecode;
+    private final Map<String, byte[]> bytecodes;
     /** Extra raw class sources added as bytes. */
-    private List<ProgramResource> source;
+    private List<ProgramResource> sources;
     private D8Command.Builder builder;
 
     public DexCompiler() {
         id = "unknown";
-        bytecode = new HashMap<>();
-        source = new ArrayList<>();
+        bytecodes = new HashMap<>();
+        sources = new ArrayList<>();
         builder = D8Command.builder(new CompilerLog());
         builder.setMinApiLevel(30);
         builder.setIntermediate(true);
@@ -70,7 +70,7 @@ public class DexCompiler {
                 code,
                 null
         );
-        source.add(resource);
+        sources.add(resource);
     }
 
     /** Runs d8. The resulting dex classes land in {@link #getBytecodes()}. */
@@ -86,13 +86,13 @@ public class DexCompiler {
 
     /** Map of class name → dex bytecode produced by the last compile. */
     public Map<String, byte[]> getBytecodes() {
-        return bytecode;
+        return bytecodes;
     }
 
     private class SourceProvider implements ProgramResourceProvider {
         @Override
         public Collection<ProgramResource> getProgramResources() throws ResourceException {
-            return source;
+            return sources;
         }
 
         @Override
@@ -109,8 +109,8 @@ public class DexCompiler {
                 name = name.substring(1, name.length() - 1);
             name = name.replace('/', '.');
             // d8 may call back from several threads, guard the shared map
-            synchronized (bytecode) {
-                bytecode.put(name, data.copyByteData());
+            synchronized (bytecodes) {
+                bytecodes.put(name, data.copyByteData());
             }
         }
 

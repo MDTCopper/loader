@@ -37,11 +37,14 @@ public class ArtBuilder {
     private static ZipFile arcSrc;
 
     /** Map of mod id to resource; entries are filled lazily (see {@link #loadResource}). */
-    private static Map<String, D8Resource> resourceMap;
+    private static Map<String, D8Resource> resourceMap = new LinkedHashMap<>();
     /** System libraries every dex compile needs (android.jar, desugar libs, ...). */
-    private static List<D8Resource> systemResource;
+    private static List<D8Resource> systemResource = new ArrayList<>();
     /** In-memory base dex pools, only kept on the desktop to save heap. */
-    private static Map<String, BaseDexPool> baseDexPoolMap;
+    private static Map<String, BaseDexPool> baseDexPoolMap = new HashMap<>();
+    private static Map<String, MixinDexMeta> mixinDexMetaMap = new HashMap<>();
+    private static Map<String, ClassFilter> deltaSourceFilter = new HashMap<>();
+    private static boolean loaderLaunched = false;
     /** The d8 desugared-lib config json, read from an internal jar. */
     private static String desugarConfig;
 
@@ -120,7 +123,8 @@ public class ArtBuilder {
                         enableMixinLog();
                     loadResouceEntry();
                     buildBaseDexPool();
-                    buildRuntimeDex();
+                    buildMixinDex();
+                    buildRuntime();
                 }
             }
 
@@ -140,7 +144,7 @@ public class ArtBuilder {
     private static void buildAndroidComponent() {
         if (ArtPlatform.gameAndroidCompFile.exists())
             return;
-        Log.verbose("Building android components.");
+        Log.debug("Building android components.");
         try (var zos = new ZipOutputStream(new FileOutputStream(ArtPlatform.gameAndroidCompFile)))  {
             JvmCompiler compiler = new JvmCompiler();
             compiler.addClassPath(readInternalFile("java-stub-rt.jar"));
@@ -202,7 +206,7 @@ public class ArtBuilder {
     private static void packGameAssets() {
         if (ArtPlatform.gameAssetFile.exists())
             return;
-        Log.verbose("Packing game assets.");
+        Log.debug("Packing game assets.");
         try (var zos = new ZipOutputStream(new FileOutputStream(ArtPlatform.gameAssetFile))) {
             walkZip(gameJar, f -> {
                 if (f.isDirectory())
@@ -238,7 +242,7 @@ public class ArtBuilder {
     private static void packGameLibs() {
         if (ArtPlatform.gameLibFile.exists())
             return;
-        Log.verbose("Packing game libs.");
+        Log.debug("Packing game libs.");
         try (var zos = new ZipOutputStream(new FileOutputStream(ArtPlatform.gameLibFile))) {
             walkZip(arcSrc, f -> {
                 if (f.isDirectory())
@@ -282,8 +286,7 @@ public class ArtBuilder {
     /** Registers one resource entry per mod plus {@code loader} and {@code mindustry};
      *  the actual jars are only opened when first needed. */
     private static void loadResouceEntry() {
-        Log.verbose("Loading recource entries.");
-        resourceMap = new LinkedHashMap<>();
+        Log.debug("Loading recource entries.");
         Loader.mods.eachMod(m -> {
             try {
                 resourceMap.put(m.id, null);
@@ -301,7 +304,6 @@ public class ArtBuilder {
      */
     private static void loadSystemResource() {
         Log.verbose("Loading system recource.");
-        systemResource = new ArrayList<>();
         byte[] desugarConfigJarBytes = readInternalFile("desugar_jdk_libs_configuration.jar");
 
         // find the desugar.json inside the config jar
@@ -330,8 +332,7 @@ public class ArtBuilder {
      * Later, runtime dexes are built by merging these pools with the mixin output.
      */
     private static void buildBaseDexPool() {
-        Log.verbose("Building base dex pools.");
-        baseDexPoolMap = new HashMap<>();
+        Log.debug("Building base dex pools.");
         for (var id : resourceMap.keySet()) {
             if (id.equals("loader"))
                 continue;
@@ -341,7 +342,7 @@ public class ArtBuilder {
             File poolFile = dexCache.getBaseDexFile(id, version.toString());
             if (poolFile.exists())
                 continue;
-            Log.verbose("  -> " + id + " : " + version);
+            Log.debug("Building base dex pool for: " + id);
 
             D8Resource resource = loadResource(id);
             DexCompiler compiler = buildDexCompiler(id, resource, false, null);
@@ -357,163 +358,171 @@ public class ArtBuilder {
         }
     }
 
-    /**
-     * Applies the registered mixins to each mod's bytecode and produces the
-     * final runtime dex jars (or link files to the packed base dexes).
-     */
-    private static void buildRuntimeDex() throws Throwable {
-        try {
-            Log.verbose("Building runtime dex jars.");
-            boolean loaderLaunched = false;
-            Map<String, ClassFilter> sourceFilter = new HashMap<>();
-            for (var id : resourceMap.keySet()) {
-                if (id.equals("loader"))
-                    continue;
+    private static void applyMixin(String id) {
+        if (deltaSourceFilter.containsKey(id))
+            return;
+        if (id.equals("loader"))
+            return;
 
-                MixinContainer container = id.equals("mindustry") ?
-                        Loader.game.container : Loader.mods.getModById(id).container;
-                if (container.mixin.isEmpty())
-                    continue;
-
-                if (id.equals("mindustry") && sourceFilter.isEmpty()
-                        && container.mixin.size() == 1 && container.mixin.get(0).container.id.equals("copper:core")
-                        && dexCache.getPackedBaseDexFile("mindustry", getGamePackedBaseDexVersion()).exists())
-                    continue;
-
-                Log.verbose("Applying mixins for: " + id);
-
-                // the mixin engine needs the full loader environment, boot it once
-                if (!loaderLaunched) {
-                    loadLoaderResource();
-                    Loader.launch();
-                    loaderLaunched = true;
-                }
-
-                // read the @Mixin targets out of every mixin class
-                Set<String> target = new HashSet<>();
-                for (var info : container.mixin) {
-                    for (var name : info.mixinName) {
-                        byte[] code = info.container.getOwnBytecode(info.packageName + "." + name);
-                        if (code == null)
-                            continue;
-                        ClassReader cr = new ClassReader(code);
-                        MixinTargetExtractor extractor = new MixinTargetExtractor();
-                        cr.accept(extractor, 0);
-                        target.addAll(extractor.getTarget());
-                    }
-                }
-                if (Log.getLevel() == Log.Level.VERBOSE) {
-                    for (String name : target)
-                        Log.verbose("Found mixin target class: " + name);
-                }
-
-                // take the transformed bytecode of each target and everything it
-                // depends on, recursively; that set becomes the mixin "delta"
-                D8Resource resource = loadResource(id);
-                ClassFilter filter = new ClassFilter();
-                Cons2<String, Set<String>> process = (name, dependency) -> {
-                    Log.verbose("Processing mixin class: " + name);
-                    byte[] code = container.getOwnBytecode(name);
-                    resource.putCode(name, code);
-                    filter.addRule("include " + name);
-
-                    ClassReader cr = new ClassReader(code);
-                    DependencyExtractor extractor = new DependencyExtractor();
-                    cr.accept(extractor, 0);
-                    for (String dep : extractor.getDependencies()) {
-                        if (resource.hasCode(dep) || container.getOwnBytecode(dep) == null)
-                            continue;
-                        dependency.add(dep);
-                        Log.verbose("Found mixin generated class: " + dep);
-                    }
-                };
-
-                Set<String> dependency = new HashSet<>();
-                for (String name : target) {
-                    // skip not found pseudo mixin
-                    if (!resource.hasCode(name))
-                        continue;
-                    process.get(name, dependency);
-                }
-                // keep expanding until no new dependency appears
-                Set<String> toProcess = new HashSet<>();
-                while (!dependency.isEmpty()) {
-                    for (String name : dependency)
-                        process.get(name, toProcess);
-                    var tmp = dependency;
-                    dependency = toProcess;
-                    toProcess = tmp;
-                    toProcess.clear();
-                }
-                sourceFilter.put(id, filter);
-            }
-
-            // dex each mod again, this time including the mixin delta as source
-            Map<String, Map<String, byte[]>> dexCode = new HashMap<>();
-            for (var id : resourceMap.keySet()) {
-                if (id.equals("loader"))
-                    continue;
-
-                ClassFilter filter = sourceFilter.get(id);
-                if (filter == null) {
-                    dexCode.put(id, null);
-                    continue;
-                }
-
-                Log.verbose("Building dex for: " + id);
-                D8Resource resource = loadResource(id);
-                DexCompiler compiler = buildDexCompiler(id, resource, true, filter);
-                compiler.compile();
-                dexCode.put(id, compiler.getBytecodes());
-            }
-
-            // no needed anymore
-            resourceMap.clear();
-            if (systemResource != null)
-                systemResource.clear();
-
-            // merge base pool + delta into the final runtime dex
-            for (var entry : dexCode.entrySet()) {
-                String id = entry.getKey();
-                var code = entry.getValue();
-                File dexFile;
-
-                // mods without mixins (or the vanilla game) reuse the packed base dex
-                boolean buildLink = code == null ||
-                        (id.equals("mindustry") && Loader.game.container.mixin.size() == 1 &&
-                                Loader.game.container.mixin.get(0).container.id.equals("copper:core"));
-
-                if (buildLink) {
-                    String version = id.equals("mindustry") ?
-                            getGamePackedBaseDexVersion() : Loader.mods.getModById(id).version.toString();
-                    dexFile = dexCache.getPackedBaseDexFile(id, version);
-                } else {
-                    dexFile = dexCache.getRuntimeDexFile(id);
-                }
-
-                if (!dexFile.exists()) {
-                    Log.verbose("Merging dex for: " + id);
-                    RuntimeDex dex = new RuntimeDex(loadBaseDexPool(id));
-                    if (code != null) {
-                        for (var e : code.entrySet())
-                            dex.putCode(e.getKey(), e.getValue());
-                    }
-                    dex.build(dexFile);
-                }
-
-                // write the link file so the runtime entry points at the packed base dex
-                if (buildLink) {
-                    File link = dexCache.getRuntimeDexLink(id);
-                    try (var fos = new FileOutputStream(link)) {
-                        fos.write(dexFile.getName().getBytes(StandardCharsets.UTF_8));
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            // a failed build must not leave a half-written runtime behind
-            dexCache.clearCurrentRuntime();
-            throw e;
+        MixinContainer container = id.equals("mindustry") ?
+                Loader.game.container : Loader.mods.getModById(id).container;
+        if (container.mixins.isEmpty()) {
+            deltaSourceFilter.put(id, null);
+            return;
         }
+
+        Log.verbose("Applying mixins for: " + id);
+
+        // the mixin engine needs the full loader environment, boot it once
+        if (!loaderLaunched) {
+            loadLoaderResource();
+            Loader.launch();
+            loaderLaunched = true;
+        }
+
+        // read the @Mixin targets out of every mixin class
+        Set<String> target = new HashSet<>();
+        for (var info : container.mixins) {
+            for (var name : info.mixinName) {
+                byte[] code = info.container.getOwnBytecode(info.packageName + "." + name);
+                if (code == null)
+                    continue;
+                ClassReader cr = new ClassReader(code);
+                MixinTargetExtractor extractor = new MixinTargetExtractor();
+                cr.accept(extractor, 0);
+                target.addAll(extractor.getTargets());
+            }
+        }
+        if (Log.getLevel() == Log.Level.VERBOSE) {
+            for (String name : target)
+                Log.verbose("Found mixin target class: " + name);
+        }
+
+        // take the transformed bytecode of each target and everything it
+        // depends on, recursively; that set becomes the mixin "delta"
+        D8Resource resource = loadResource(id);
+        ClassFilter filter = new ClassFilter();
+        Cons2<String, Set<String>> process = (name, dependency) -> {
+            Log.verbose("Processing mixin class: " + name);
+            byte[] code = container.getOwnBytecode(name);
+            resource.putCode(name, code);
+            filter.addRule("include " + name);
+
+            ClassReader cr = new ClassReader(code);
+            DependencyExtractor extractor = new DependencyExtractor();
+            cr.accept(extractor, 0);
+            for (String dep : extractor.getDependencies()) {
+                if (resource.hasCode(dep) || container.getOwnBytecode(dep) == null)
+                    continue;
+                dependency.add(dep);
+                Log.verbose("Found mixin generated class: " + dep);
+            }
+        };
+
+        Set<String> dependency = new HashSet<>();
+        for (String name : target) {
+            // skip not found pseudo mixin
+            if (!resource.hasCode(name))
+                continue;
+            process.get(name, dependency);
+        }
+        // keep expanding until no new dependency appears
+        Set<String> toProcess = new HashSet<>();
+        while (!dependency.isEmpty()) {
+            for (String name : dependency)
+                process.get(name, toProcess);
+            var tmp = dependency;
+            dependency = toProcess;
+            toProcess = tmp;
+            toProcess.clear();
+        }
+        deltaSourceFilter.put(id, filter);
+    }
+
+    private static void buildMixinDex() {
+        Log.debug("Building mixin dex.");
+        for (var id : resourceMap.keySet()) {
+            if (id.equals("loader"))
+                continue;
+
+            MixinDexMeta meta = new MixinDexMeta();
+            MixinContainer container;
+            meta.id = id;
+            if (id.equals("mindustry")) {
+                container = Loader.game.container;
+                meta.version = Loader.game.version.toString();
+            } else {
+                var mod = Loader.mods.getModById(id);
+                container = mod.container;
+                meta.version = mod.version.toString();
+            }
+            for (var info : container.mixins) {
+                var ver = Loader.mods.getModById(info.container.id).version;
+                meta.sources.add(new ModDescriptor(info.container.id, ver.toString()));
+            }
+            mixinDexMetaMap.put(id, meta);
+        }
+
+        // dex each mod again, this time including the mixin delta as source
+        Map<String, Map<String, byte[]>> dexCode = new HashMap<>();
+        for (var entry : mixinDexMetaMap.entrySet()) {
+            var id = entry.getKey();
+            var meta = entry.getValue();
+
+            File dexFile = dexCache.getMixinDexFile(meta);
+            if (dexFile.exists())
+                continue;
+
+            applyMixin(id);
+            var filter = deltaSourceFilter.get(id);
+            if (filter == null) {
+                dexCode.put(id, null);
+                continue;
+            }
+
+            Log.debug("Building dex for: " + id);
+            D8Resource resource = loadResource(id);
+            DexCompiler compiler = buildDexCompiler(id, resource, true, filter);
+            compiler.compile();
+            dexCode.put(id, compiler.getBytecodes());
+        }
+
+        // no needed anymore
+        resourceMap.clear();
+        if (systemResource != null)
+            systemResource.clear();
+
+        for (var entry : dexCode.entrySet()) {
+            String id = entry.getKey();
+            var code = entry.getValue();
+            var meta = mixinDexMetaMap.get(id);
+            File metaFile = dexCache.getMixinDexMetaFile(meta);
+            File dexFile = dexCache.getMixinDexFile(meta);
+
+            try {
+                Log.debug("Merging dex for: " + id);
+                MixinDex dex = new MixinDex(loadBaseDexPool(id));
+                if (code != null) {
+                    for (var e : code.entrySet())
+                        dex.putCode(e.getKey(), e.getValue());
+                }
+                dex.build(dexFile);
+                meta.write(metaFile);
+            } catch (Throwable e) {
+                dexFile.delete();
+                metaFile.delete();
+                throw e;
+            }
+        }
+    }
+
+    private static void buildRuntime() {
+        Log.debug("Building runtime.");
+        RuntimeMeta meta = new RuntimeMeta();
+        Loader.mods.eachMod(m -> meta.mods.add(new ModDescriptor(m.id, m.version.toString())));
+        for (var entry : mixinDexMetaMap.entrySet())
+            meta.jarLinks.put(entry.getKey(), entry.getValue().sha256());
+        dexCache.updateCurrentRuntime(meta);
     }
 
     // lazy load resource
@@ -607,7 +616,7 @@ public class ArtBuilder {
         compiler.setId(id);
         compiler.addClassPath(resource);
 
-        if (systemResource == null)
+        if (systemResource.isEmpty())
             loadSystemResource();
 
         if (desugarConfig != null)
@@ -624,10 +633,10 @@ public class ArtBuilder {
         Set<String> processedPackage = new HashSet<>();
         ClassFilter srcFilter = new ClassFilter();
         if (!id.equals("mindustry")) {
-            for (var desc : Loader.mods.getModById(id).mixin) {
+            for (var desc : Loader.mods.getModById(id).mixins) {
                 MixinContainer target = desc.id.equals("mindustry") ?
                         Loader.game.container : Loader.mods.getModById(desc.id).container;
-                for (var info : target.mixin) {
+                for (var info : target.mixins) {
                     if (info.container == container && processedPackage.add(info.packageName)) {
                         String prefix = info.packageName + ".";
                         resource.eachCode((name, code) -> {
@@ -655,7 +664,8 @@ public class ArtBuilder {
 
         // adding the mixin containers as libraries lets d8 link against their classes
         if (withMixin) {
-            for (var mixin : container.mixin) {
+            for (var mixin : container.mixins) {
+                applyMixin(mixin.container.id);
                 var lib = loadResource(mixin.container.id)
                         .getFiltered(mixin.container.export);
                 compiler.addLibrary(lib);
@@ -663,19 +673,17 @@ public class ArtBuilder {
         }
 
         // every dependency's exported classes must be visible while compiling
-        for (var dep : container.dependency) {
+        for (var dep : container.dependencies) {
             var filter = dep.extraImport.copy();
             filter.addAllRules(dep.container.export);
+            if (withMixin)
+                applyMixin(dep.container.id);
             var lib = loadResource(dep.container.id)
                     .getFiltered(filter);
             compiler.addLibrary(lib);
         }
 
         return compiler;
-    }
-
-    private static String getGamePackedBaseDexVersion() {
-        return Loader.game.version.toString() + "-" + Loader.mods.getModById("copper:core").version.toString();
     }
 
     private static void checkFileProvided(File file, String desc) {

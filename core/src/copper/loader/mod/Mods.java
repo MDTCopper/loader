@@ -21,15 +21,15 @@ public class Mods {
     private static final String[] copperMetaFiles
             = {"copper.mod.json", "copper.mod.hjson"};
 
-    private Map<String, Mod> mod;
-    private List<Mod> orderedMod;
+    private Map<String, Mod> mods;
+    private List<Mod> orderedMods;
     private Map<String, Mod> pathMap;
     private Map<ClassLoader, Mod> clMap;
     private State state;
 
     public Mods() {
-        mod = new HashMap<>();
-        orderedMod = new ArrayList<>();
+        mods = new HashMap<>();
+        orderedMods = new ArrayList<>();
         pathMap = new HashMap<>();
         clMap = new HashMap<>();
         state = State.None;
@@ -39,7 +39,7 @@ public class Mods {
      * Looks up a mod by its string id (e.g., {@code "copper:core"}).
      */
     public Mod getModById(String id) {
-        return mod.get(id);
+        return mods.get(id);
     }
 
     /**
@@ -60,7 +60,7 @@ public class Mods {
      * Iterates over all mods in load order.
      */
     public void eachMod(Cons<Mod> cons) {
-        for (Mod m : orderedMod)
+        for (Mod m : orderedMods)
             cons.get(m);
     }
 
@@ -68,7 +68,7 @@ public class Mods {
      * Returns the mod list in load order.
      */
     public List<Mod> getMods() {
-        return orderedMod;
+        return orderedMods;
     }
 
     /**
@@ -87,7 +87,7 @@ public class Mods {
                     continue;
                 try {
                     Mod m = constructor.get(file);
-                    if (mod.containsKey(m.id))
+                    if (mods.containsKey(m.id))
                         throw new RuntimeException("found duplicated mod: " + m.id);
                     // In vanilla mode only the hidden copper mods and vanilla Mindustry mods are loaded.
                     if (Loader.vars.vanillaMode) {
@@ -97,7 +97,7 @@ public class Mods {
                     // Skip non-java mods
                     if (m.main.isEmpty())
                         continue;
-                    mod.put(m.id, m);
+                    mods.put(m.id, m);
                     pathMap.put(file.getAbsolutePath(), m);
                 } catch (Throwable e) {
                     Log.error("failed to read mod: " + file.getAbsolutePath());
@@ -112,13 +112,13 @@ public class Mods {
      * reporting cycles as errors.
      */
     private void sortMod() {
-        orderedMod.clear();
+        orderedMods.clear();
 
-        var mods = mod.values().toArray(Mod[]::new);
+        var mods = this.mods.values().toArray(Mod[]::new);
         for (Mod m : mods)
             if (m instanceof MindustryMod)
-                orderedMod.add(m);
-        int mdtModCnt = orderedMod.size();
+                orderedMods.add(m);
+        int mdtModCnt = orderedMods.size();
 
         Map<Mod, Integer> inDegCnt = new HashMap<>();
         Map<Mod, List<Mod>> outDeg = new HashMap<>();
@@ -155,29 +155,29 @@ public class Mods {
         for (Mod m : mods) {
             if (m instanceof MindustryMod)
                 continue;
-            inDegCnt.put(m, m.dependency.size());
-            for (var info : m.dependency) {
+            inDegCnt.put(m, m.dependencies.size());
+            for (var info : m.dependencies) {
                 if (!info.id.equals("mindustry") && !info.id.equals("loader") && !info.id.startsWith("mindustry:"))
-                    outDeg.computeIfAbsent(mod.get(info.id), k -> new ArrayList<>())
+                    outDeg.computeIfAbsent(this.mods.get(info.id), k -> new ArrayList<>())
                             .add(m);
                 else
                     inDegCnt.computeIfPresent(m, (k, v) -> v - 1);
             }
         }
-        sort.get(orderedMod, "mod dependency path");
+        sort.get(orderedMods, "mod dependency path");
 
         // The core mod must load first so it can register all Copper mods into Mindustry.
-        Structs.swap(orderedMod, mdtModCnt, orderedMod.indexOf(mod.get("copper:core")));
+        Structs.swap(orderedMods, mdtModCnt, orderedMods.indexOf(this.mods.get("copper:core")));
 
         inDegCnt.clear();
         outDeg.clear();
         for (Mod m : mods) {
             if (m instanceof MindustryMod)
                 continue;
-            inDegCnt.put(m, m.mixin.size());
-            for (var mixin : m.mixin) {
+            inDegCnt.put(m, m.mixins.size());
+            for (var mixin : m.mixins) {
                 if (!mixin.id.equals("mindustry") && !mixin.id.equals("loader") && !mixin.id.startsWith("mindustry:"))
-                    outDeg.computeIfAbsent(mod.get(mixin.id), k -> new ArrayList<>())
+                    outDeg.computeIfAbsent(this.mods.get(mixin.id), k -> new ArrayList<>())
                             .add(m);
                 else
                     inDegCnt.computeIfPresent(m, (k, v) -> v - 1);
@@ -191,15 +191,15 @@ public class Mods {
      * the game, and the loader as dependencies.
      */
     private void resolveMod() {
-        DependencyInfo coreInfo = new DependencyInfo(mod.get("copper:core").container);
+        DependencyInfo coreInfo = new DependencyInfo(mods.get("copper:core").container);
         DependencyInfo gameInfo = new DependencyInfo(Loader.game.container);
         DependencyInfo loaderInfo = new DependencyInfo(Loader.vars.loaderContainer);
         eachMod(m -> {
             if (!m.id.equals("copper:core"))
-                m.container.dependency.add(coreInfo);
+                m.container.dependencies.add(coreInfo);
         });
-        eachMod(m -> m.container.dependency.add(gameInfo));
-        eachMod(m -> m.container.dependency.add(loaderInfo));
+        eachMod(m -> m.container.dependencies.add(gameInfo));
+        eachMod(m -> m.container.dependencies.add(loaderInfo));
         eachMod(Mod::resolve);
     }
 
@@ -216,7 +216,7 @@ public class Mods {
         readMod(Loader.vars.copperModFolder, copperMetaFiles, Mod::new);
         readMod(Loader.vars.gameModFolder, mindustryMetaFiles, MindustryMod::new);
 
-        Mod core = mod.get("copper:core");
+        Mod core = mods.get("copper:core");
         if (core == null)
             throw new RuntimeException("core mod is not found");
         core.version = Loader.vars.loaderVersion;
@@ -227,7 +227,7 @@ public class Mods {
         sortMod();
         resolveMod();
 
-        Log.info("Found " + mod.size() + " mods.");
+        Log.info("Found " + mods.size() + " mods.");
         if (Log.getLevel().ordinal() >= Log.Level.DEBUG.ordinal()) {
             Log.debug("Mods list: ");
             eachMod(mod -> Log.debug("  -> " + mod.id + " " + mod.version.toString()));

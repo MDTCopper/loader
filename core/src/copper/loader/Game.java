@@ -28,7 +28,7 @@ public class Game {
         container = Loader.platform.createGameContainer();
         container.id = "mindustry";
         container.export.addRule("include *");
-        container.dependency.add(new DependencyInfo(Loader.vars.loaderContainer));
+        container.dependencies.add(new DependencyInfo(Loader.vars.loaderContainer));
 
         try {
             String ver = new String(container.resource.get("version.properties"), StandardCharsets.UTF_8);

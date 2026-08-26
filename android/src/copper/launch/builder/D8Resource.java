@@ -20,20 +20,39 @@ import java.util.zip.*;
  */
 public class D8Resource implements ClassFileResourceProvider, ProgramResourceProvider {
     /** Map of class descriptor to program resource. */
-    private Map<String, ProgramResource> code;
+    private Map<String, ProgramResource> codes;
 
     public D8Resource() {
-        code = new HashMap<>();
+        codes = new HashMap<>();
     }
 
     /** Reads every class of a jar file. */
     public D8Resource(File jar) throws IOException {
-        this(new FileInputStream(jar), null);
+        this(jar, null);
     }
 
     /** Reads the classes of a jar file that pass the filter. */
     public D8Resource(File jar, ClassFilter filter) throws IOException {
-        this(new FileInputStream(jar), filter);
+        codes = new HashMap<>();
+        try (var zip = new ZipFile(jar)) {
+            var entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                var entry = entries.nextElement();
+                if (entry.isDirectory() || !entry.getName().endsWith(".class"))
+                    continue;
+                String name = entry.getName().replace('\\', '/');
+                if (name.startsWith("/"))
+                    name = name.substring(1);
+                // remove .class
+                name = name.substring(0, name.length() - 6).replace('/', '.');
+                if (filter == null || filter.check(name)) {
+                    byte[] code = Streams.readAllBytes(zip.getInputStream(entry));
+                    putCode(name, code);
+                }
+            }
+        } catch (Throwable e) {
+            throw new RuntimeException("failed to read jar", e);
+        }
     }
 
     /** Reads every class of an in-memory jar. */
@@ -47,7 +66,7 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
     }
 
     public D8Resource(InputStream jar, ClassFilter filter) {
-        code = new HashMap<>();
+        codes = new HashMap<>();
         try (var zis = new ZipInputStream(jar)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -58,7 +77,7 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
                 String name = entry.getName().replace('\\', '/');
                 if (name.startsWith("/"))
                     name = name.substring(1);
-                // remove .class then wrap
+                // remove .class
                 name = name.substring(0, name.length() - 6).replace('/', '.');
                 if (filter == null || filter.check(name)) {
                     byte[] code = Streams.readAllBytes(zis);
@@ -74,12 +93,12 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
     /** Returns a copy that only keeps the classes passing the filter. */
     public D8Resource getFiltered(ClassFilter filter) {
         var filtered = new D8Resource();
-        for (var entry : code.entrySet()) {
+        for (var entry : codes.entrySet()) {
             String name = entry.getKey();
             // convert desc to name: La/b/c; -> a.b.c
             name = name.substring(1, name.length() - 1).replace('/', '.');
             if (filter.check(name))
-                filtered.code.put(entry.getKey(), entry.getValue());
+                filtered.codes.put(entry.getKey(), entry.getValue());
         }
         return filtered;
     }
@@ -87,12 +106,12 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
     /** Whether a class is present. */
     public boolean hasCode(String className) {
         className = "L" + className.replace('.', '/') + ";";
-        return code.containsKey(className);
+        return codes.containsKey(className);
     }
 
     /** Merges all classes of another resource into this one. */
     public void putAllCode(D8Resource resource) {
-        code.putAll(resource.code);
+        codes.putAll(resource.codes);
     }
 
     /** Stores class bytecode under its name. */
@@ -104,13 +123,13 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
                 code,
                 null
         );
-        this.code.put(classDesc, resource);
+        this.codes.put(classDesc, resource);
     }
 
     /** Iterates over every stored class (name → raw bytes). */
     public void eachCode(ThrowableCons2<String, byte[]> cons) {
         try {
-            for (var entry : code.entrySet()) {
+            for (var entry : codes.entrySet()) {
                 String name = entry.getKey();
                 // convert desc to name: La/b/c; -> a.b.c
                 name = name.substring(1, name.length() - 1).replace('/', '.');
@@ -125,22 +144,22 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
 
     @Override
     public Set<String> getClassDescriptors() {
-        return code.keySet();
+        return codes.keySet();
     }
 
     @Override
     public ProgramResource getProgramResource(String s) {
-        return code.get(s);
+        return codes.get(s);
     }
 
     @Override
     public Collection<ProgramResource> getProgramResources() {
-        return code.values();
+        return codes.values();
     }
 
     @Override
     public void getProgramResources(Consumer<ProgramResource> consumer) {
-        for (var res : code.values())
+        for (var res : codes.values())
             consumer.accept(res);
     }
 

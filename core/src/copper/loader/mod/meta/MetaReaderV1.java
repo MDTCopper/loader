@@ -217,17 +217,17 @@ public class MetaReaderV1 implements IMetaReader {
             mod.extraMeta = meta.get("extra").toString(Jval.Jformat.plain);
 
         if (meta.containsKey("dependencies"))
-            mod.dependency.addAll(parseModDescriptors(meta.get("dependencies").asObject()));
+            mod.dependencies.addAll(parseModDescriptors(meta.get("dependencies").asObject()));
         if (meta.containsKey("conflicts"))
-            mod.dependency.addAll(parseModDescriptors(meta.get("conflicts").asObject()));
+            mod.dependencies.addAll(parseModDescriptors(meta.get("conflicts").asObject()));
 
         if (meta.containsKey("exports")) {
             // Export rules matched top to bottom; system auto-appends "include author.modname.*"
             Jval.JsonArray exports = meta.get("exports").asArray();
             for (var item : exports)
-                mod.exportRule.add(item.asString());
+                mod.exportRules.add(item.asString());
         }
-        mod.exportRule.add("include " + mod.id.replace(':', '.') + ".*");
+        mod.exportRules.add("include " + mod.id.replace(':', '.') + ".*");
 
         if (meta.containsKey("imports")) {
             // Import rules matched top to bottom for each dependency mod
@@ -241,7 +241,7 @@ public class MetaReaderV1 implements IMetaReader {
                     for (var item : val.asArray())
                         arr.add(item.asString());
                 }
-                mod.importRule.put(entry.getKey(), arr);
+                mod.importRules.put(entry.getKey(), arr);
             }
         }
 
@@ -254,17 +254,17 @@ public class MetaReaderV1 implements IMetaReader {
                 MixinDescriptor desc = new MixinDescriptor();
                 desc.id = id;
                 desc.configPath = conf.asString();
-                mod.mixin.add(desc);
+                mod.mixins.add(desc);
             }
         }
     }
 
-    private ArrayList<ModDescriptor> parseModDescriptors(Jval.JsonMap obj) {
-        ArrayList<ModDescriptor> descs = new ArrayList<>();
+    private ArrayList<RelationDescriptor> parseModDescriptors(Jval.JsonMap obj) {
+        ArrayList<RelationDescriptor> descs = new ArrayList<>();
         for (var entry : obj.entrySet()) {
             String id = entry.getKey().trim();
             Jval ver = entry.getValue();
-            ModDescriptor desc = new ModDescriptor();
+            RelationDescriptor desc = new RelationDescriptor();
             desc.id = id;
             if (ver.isString()) {
                 try {

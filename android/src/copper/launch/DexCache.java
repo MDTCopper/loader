@@ -1,9 +1,9 @@
 package copper.launch;
 
+import copper.launch.builder.*;
 import copper.launch.util.*;
 import copper.loader.*;
-import copper.loader.func.*;
-import copper.loader.util.*;
+
 import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
@@ -22,43 +22,45 @@ import java.util.*;
 public class DexCache {
     private File root;
     private File baseDexFolder;
-    private File packedBaseDexFolder;
-    private File runtimeDexFolder;
-    private File currentRuntimeDexFolder;
+    private File mixinDexFolder;
+    private File runtimeMetaFolder;
+    private File currentRuntimeFile;
+    private RuntimeMeta currentRuntimeMeta;
 
     /** Creates the cache folders under the given root. */
     public DexCache(File root) {
         this.root = root;
         baseDexFolder = new File(root, "base");
-        packedBaseDexFolder = new File(root, "pack/base");
-        runtimeDexFolder = new File(root, "pack/runtime");
+        mixinDexFolder = new File(root, "mixin");
+        runtimeMetaFolder = new File(root, "runtime");
+        currentRuntimeMeta = new RuntimeMeta();
         baseDexFolder.mkdirs();
-        packedBaseDexFolder.mkdirs();
-        runtimeDexFolder.mkdirs();
+        mixinDexFolder.mkdirs();
+        runtimeMetaFolder.mkdirs();
     }
 
     /** Picks the runtime folder for the currently enabled mods. */
     public void init() {
-        currentRuntimeDexFolder = getCurrentRuntimeFolder();
-        currentRuntimeDexFolder.mkdirs();
+        currentRuntimeFile = getCurrentRuntimeFile();
+        if (currentRuntimeFile.exists()) {
+            currentRuntimeMeta = new RuntimeMeta(currentRuntimeFile);
+        }
     }
 
     /** Returns the base dex file for a mod at a given version. */
     public File getBaseDexFile(String id, String version) {
         id = id.replace(':', '-');
-        return new File(baseDexFolder, id + "-" + version + ".jar");
+        var folder = new File(baseDexFolder, id);
+        folder.mkdirs();
+        return new File(folder, Hash.sha256(version.getBytes(StandardCharsets.UTF_8)) + ".jar");
     }
 
-    /** Returns the packed base dex file for a mod at a given version. */
-    public File getPackedBaseDexFile(String id, String version) {
-        id = id.replace(':', '-');
-        return new File(packedBaseDexFolder, id + "-" + version + ".jar");
+    public File getMixinDexFile(MixinDexMeta meta) {
+        return new File(getMixinDexFolder(meta), "rt.jar");
     }
 
-    /** Returns the link file that points a runtime entry to a packed base dex. */
-    public File getRuntimeDexLink(String id) {
-        id = id.replace(':', '-');
-        return new File(currentRuntimeDexFolder, id + ".link");
+    public File getMixinDexMetaFile(MixinDexMeta meta) {
+        return new File(getMixinDexFolder(meta), "meta");
     }
 
     /**
@@ -66,51 +68,64 @@ public class DexCache {
      * Follows the link file when present, otherwise the runtime dex file.
      */
     public File getRuntimeDexFile(String id) {
-        File link = getRuntimeDexLink(id);
-        if (link.exists()) {
-            try (var fis = new FileInputStream(link)) {
-                String name = new String(Streams.readAllBytes(fis), StandardCharsets.UTF_8);
-                return new File(packedBaseDexFolder, name);
-            } catch (Throwable ignored) {}
-        }
+        String hash = currentRuntimeMeta.jarLinks.get(id);
+        if (hash == null)
+            return null;
         id = id.replace(':', '-');
-        return new File(currentRuntimeDexFolder, id + ".jar");
+        return new File(mixinDexFolder, id + "/" + hash + "/rt.jar");
+    }
+
+    public void updateCurrentRuntime(RuntimeMeta meta) {
+        try {
+            meta.write(currentRuntimeFile);
+            currentRuntimeMeta = meta;
+        } catch (Throwable e) {
+            if (currentRuntimeFile != null)
+                currentRuntimeFile.delete();
+            throw new RuntimeException("failed to update current runtime", e);
+        }
     }
 
     /** Whether a runtime dex for the current mod set already exists. */
     public boolean isCurrentRuntimeExisted() {
-        return getRuntimeDexFile("mindustry").exists();
+        return currentRuntimeFile.exists();
     }
 
     /** Deletes the runtime folder of the current mod set (used on a failed build). */
     public void clearCurrentRuntime() {
-        currentRuntimeDexFolder.delete();
+        currentRuntimeFile.delete();
     }
 
     /** Deletes all base and runtime dexes. */
     public void clear() {
         baseDexFolder.delete();
-        packedBaseDexFolder.delete();
-        runtimeDexFolder.delete();
+        mixinDexFolder.delete();
+        runtimeMetaFolder.delete();
     }
 
     /** Deletes every cache entry related to one mod id. */
     public void remove(String id) {
         id = id.replace(':', '-');
         for (String name : baseDexFolder.list()) {
-            if (name.startsWith(id + "-"))
+            if (name.equals(id))
                 (new File(baseDexFolder, name)).delete();
         }
-        for (String name : packedBaseDexFolder.list()) {
-            if (name.startsWith(id + "-"))
+        for (String name : mixinDexFolder.list()) {
+            if (name.equals(id))
                 (new File(baseDexFolder, name)).delete();
         }
-        for (String name : runtimeDexFolder.list()) {
-            if ((new File(runtimeDexFolder, name + "/" + id + ".jar")).exists())
-                (new File(runtimeDexFolder, name)).delete();
-            if ((new File(runtimeDexFolder, name + "/" + id + ".link")).exists())
-                (new File(runtimeDexFolder, name)).delete();
+        for (String name : runtimeMetaFolder.list()) {
+            File file = new File(runtimeMetaFolder, name);
+            RuntimeMeta meta = new RuntimeMeta(file);
+            if (meta.jarLinks.containsKey(id))
+                file.delete();
         }
+    }
+
+    private File getMixinDexFolder(MixinDexMeta meta) {
+        File folder = new File(mixinDexFolder, meta.id.replace(':', '-') + "/" + meta.sha256());
+        folder.mkdirs();
+        return folder;
     }
 
     /**
@@ -118,7 +133,7 @@ public class DexCache {
      * (game version + every mod id/version), so a different mod set yields a
      * different folder.
      */
-    private File getCurrentRuntimeFolder() {
+    private File getCurrentRuntimeFile() {
         try {
             ArrayList<String> list = new ArrayList<>();
             list.add("mindustry:" + Loader.game.version.toString());
@@ -128,9 +143,7 @@ public class DexCache {
             txt += String.join("\n", list);
 
             String hash = Hash.sha256(txt.getBytes(StandardCharsets.UTF_8));
-            File folder = new File(runtimeDexFolder, hash);
-            folder.mkdirs();
-            return folder;
+            return new File(runtimeMetaFolder, hash);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

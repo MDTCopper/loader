@@ -15,7 +15,7 @@ public abstract class Container {
     /** Container identifier (e.g. mod id). */
     public String id;
     /** Dependencies of this container. */
-    public List<DependencyInfo> dependency;
+    public List<DependencyInfo> dependencies;
     /** Resource provider for reading files. */
     public ResourceProvider resource;
     /** Filter controlling public visibility of this container's own classes. */
@@ -23,7 +23,7 @@ public abstract class Container {
 
     public Container() {
         id = "unnamed";
-        dependency = new ArrayList<>();
+        dependencies = new ArrayList<>();
         resource = new ResourceProvider();
         export = new ClassFilter();
     }
@@ -40,7 +40,7 @@ public abstract class Container {
     public byte[] getAccessibleBytecode(String name) {
         byte[] code = null;
         // Search dependency containers for transformed bytecode.
-        for (DependencyInfo info : dependency) {
+        for (DependencyInfo info : dependencies) {
             if (info.extraImport.check(name))
                 code = info.container.getOwnBytecode(name);
             else
@@ -78,7 +78,7 @@ public abstract class Container {
      */
     public Class<?> getAccessibleClass(String name) {
         Class<?> c = null;
-        for (DependencyInfo info : dependency) {
+        for (DependencyInfo info : dependencies) {
             if (info.extraImport.check(name))
                 c = info.container.loadOwnClass(name);
             else

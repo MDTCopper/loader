@@ -11,10 +11,10 @@ import java.util.zip.*;
  * <p>The {@link DexMerger} re-packages all dex entries (base + delta) into one jar
  * with the usual {@code classes.dex}, {@code classes2.dex}, ... naming.</p>
  */
-public class RuntimeDex extends CodePool {
+public class MixinDex extends CodePool {
     private BaseDexPool base;
 
-    public RuntimeDex(BaseDexPool base) {
+    public MixinDex(BaseDexPool base) {
         this.base = base;
     }
 

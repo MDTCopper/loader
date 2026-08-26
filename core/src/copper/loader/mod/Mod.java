@@ -49,15 +49,15 @@ public class Mod {
     public String extraMeta;
 
     /** Declared dependency descriptors (includes conflicts). */
-    public List<ModDescriptor> dependency;
+    public List<RelationDescriptor> dependencies;
     /** Declared conflict descriptors. */
-    public List<ModDescriptor> conflict;
+    public List<RelationDescriptor> conflicts;
     /** Mixin configuration descriptors. */
-    public List<MixinDescriptor> mixin;
+    public List<MixinDescriptor> mixins;
     /** Own-class export rules ({@code include/exclude <pattern>}). */
-    public List<String> exportRule;
+    public List<String> exportRules;
     /** Per-dependency import rules ({@code depId → ["include ...", ...]}). */
-    public Map<String, List<String>> importRule;
+    public Map<String, List<String>> importRules;
 
     /** The mod file on disk (jar or directory). */
     public File file;
@@ -75,11 +75,11 @@ public class Mod {
         id = author = name = description = main = repo = "";
         extraMeta = "{}";
         hidden = false;
-        dependency = new ArrayList<>();
-        conflict = new ArrayList<>();
-        mixin = new ArrayList<>();
-        exportRule = new ArrayList<>();
-        importRule = new HashMap<>();
+        dependencies = new ArrayList<>();
+        conflicts = new ArrayList<>();
+        mixins = new ArrayList<>();
+        exportRules = new ArrayList<>();
+        importRules = new HashMap<>();
         try {
             file = baseFile;
             container = Loader.platform.createModContainer(file);
@@ -165,10 +165,10 @@ public class Mod {
      * The containers of core mod, game and loader are added in `Mods.resolveMod` before calling this.
      */
     void resolve() {
-        for (String rule : exportRule)
+        for (String rule : exportRules)
             container.export.addRule(rule);
 
-        for (ModDescriptor dep : dependency) {
+        for (RelationDescriptor dep : dependencies) {
             if (dep.id.equals("mindustry")) {
                 if (!dep.version.check(Loader.game.version))
                     throw new RuntimeException("game version is rejected by " + id + " : " + Loader.game.version.toString());
@@ -184,16 +184,16 @@ public class Mod {
                 // The core mod is added separately in Mods.resolveMod.
                 if (!o.id.equals("copper:core")) {
                     DependencyInfo info = new DependencyInfo(o.container);
-                    if (importRule.containsKey(o.id)) {
-                        for (String rule : importRule.get(o.id))
+                    if (importRules.containsKey(o.id)) {
+                        for (String rule : importRules.get(o.id))
                             info.extraImport.addRule(rule);
                     }
-                    container.dependency.add(info);
+                    container.dependencies.add(info);
                 }
             }
         }
 
-        for (ModDescriptor con : conflict) {
+        for (RelationDescriptor con : conflicts) {
             if (con.id.equals("mindustry")) {
                 if (con.version.check(Loader.game.version))
                     throw new RuntimeException("game version is rejected by " + id + " : " + Loader.game.version.toString());
@@ -209,7 +209,7 @@ public class Mod {
             }
         }
 
-        for (var mixin : mixin) {
+        for (var mixin : mixins) {
             MixinContainer target = null;
             Version version = null;
             if (mixin.id.equals("mindustry")) {
@@ -236,7 +236,7 @@ public class Mod {
                 if (ver <= 0 || ver > mixinReaders.length)
                     throw new RuntimeException("mixin config version is not supported: " + ver);
                 MixinInfo info = mixinReaders[ver - 1].read(container, version, config.get("config"));
-                target.mixin.add(info);
+                target.mixins.add(info);
             } catch (Throwable e) {
                 throw new RuntimeException("failed to read mixin config in mod " + id + " : " + mixin.configPath);
             }

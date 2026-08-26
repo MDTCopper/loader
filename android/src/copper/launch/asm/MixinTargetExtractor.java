@@ -11,16 +11,16 @@ import java.util.*;
  * the target class names (either as internal names or {@link Type} constants).</p>
  */
 public class MixinTargetExtractor extends ClassVisitor {
-    private Set<String> target;
+    private Set<String> targets;
 
     public MixinTargetExtractor() {
         super(Opcodes.ASM9);
-        target = new HashSet<>();
+        targets = new HashSet<>();
     }
 
     /** The collected target class names (dotted). */
-    public Set<String> getTarget() {
-        return target;
+    public Set<String> getTargets() {
+        return targets;
     }
 
     @Override
@@ -48,9 +48,9 @@ public class MixinTargetExtractor extends ClassVisitor {
                         // internal name like "La/b/C;" -> a.b.C
                         if (str.startsWith("L") && str.endsWith(";"))
                             str = str.substring(1, str.length() - 1);
-                        target.add(str.replace('/', '.'));
+                        targets.add(str.replace('/', '.'));
                     } else if (value instanceof Type type) {
-                        target.add(type.getClassName());
+                        targets.add(type.getClassName());
                     }
                 }
             };
