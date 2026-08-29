@@ -5,7 +5,6 @@ import com.android.tools.r8.origin.*;
 import copper.loader.container.*;
 import copper.loader.func.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.util.*;
 import java.util.function.*;

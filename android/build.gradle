@@ -257,7 +257,7 @@ tasks.register('jarAndroid') {
     }
 }
 
-tasks.register('deploy', Jar) {
+tasks.register('localDeploy', Jar) {
     dependsOn jarAndroid
     dependsOn jar
 
@@ -267,5 +267,19 @@ tasks.register('deploy', Jar) {
             zipTree("build/libs/${project.name}-desktop-${project.version}.jar"),
             zipTree("build/libs/${project.name}-dex.jar")
     ]}
+}
+
+tasks.register('ciDeploy') {
+    dependsOn 'localDeploy'
+
+    doLast {
+        delete "build/libs/${project.name}-desktop-${project.version}.jar"
+        delete "build/libs/${project.name}-art.jar"
+        delete "build/libs/${project.name}-android-source.jar"
+        delete "build/libs/${project.name}-android-base.jar"
+        delete "build/libs/${project.name}-android-desugar.jar"
+        delete "build/libs/${project.name}-dex.jar"
+        delete "build/libs/desugar.json"
+    }
 }
 

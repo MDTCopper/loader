@@ -2,7 +2,6 @@ package copper.launch.builder;
 
 import copper.loader.func.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.util.zip.*;
 

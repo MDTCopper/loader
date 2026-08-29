@@ -2,7 +2,6 @@ package copper.launch.builder;
 
 import copper.launch.util.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.nio.charset.*;
 import java.util.*;
