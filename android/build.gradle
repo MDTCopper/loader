@@ -225,7 +225,7 @@ tasks.register('jarAndroid') {
                 .listFiles()?.sort()?.reverse()?.find { f -> new File(f, "lib/d8.jar").exists() }
                 : null
         if (buildRoot == null)
-            throw new GradleException('No valid android build tools found.');
+            throw new GradleException('No valid android build tools found.')
 
         def javaCmd = isWindows ? "java.exe" : "java"
         def d8Cp = (new File(buildRoot, 'lib/d8.jar')).absolutePath

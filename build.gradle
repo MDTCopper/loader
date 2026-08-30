@@ -4,7 +4,7 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven { url =  'https://www.jitpack.io' }
-        maven{ url =  'https://maven.google.com' }
+        maven { url =  'https://maven.google.com' }
     }
 
     ext {
@@ -24,19 +24,19 @@ subprojects {
         group = "com.github.MDTCopper.loader"
         version = buildVersion
 
-        task sourcesJar(type: Jar) {
+        tasks.register('sourcesJar', Jar) {
             from sourceSets.main.allJava
             archiveClassifier.set('sources')
         }
 
-        tasks.withType(Javadoc) {
+        tasks.withType(Javadoc).configureEach {
             options.encoding = 'UTF-8'
             options.locale = 'en_US'
             options.addStringOption('Xdoclint:none', '-quiet')
             options.JFlags = ['-Duser.language=en', '-Duser.country=US']
         }
 
-        task javadocJar(type: Jar) {
+        tasks.register('javadocJar', Jar) {
             archiveClassifier.set('javadoc')
             from javadoc
         }
