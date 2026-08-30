@@ -50,7 +50,7 @@ public class MixinConfigReaderV1 implements IMixinConfigReader {
         MixinInfo info = new MixinInfo();
 
         for (var entry : mixins.entrySet()) {
-            IVersionFilter filter = null;
+            IVersionFilter filter;
             String ver = entry.getKey().trim();
             try {
                 filter = new SemanticVersionFilter(ver);

@@ -3,7 +3,6 @@ package copper.loader;
 import copper.loader.container.*;
 import copper.loader.mod.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.nio.charset.*;
 import java.util.*;

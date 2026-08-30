@@ -82,6 +82,11 @@ jar {
         exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
         exclude 'module-info.class', '**/module-info.class'
         exclude 'META-INF/maven/**'
+
+        // these classes use some java classes which are not present on android
+        exclude 'org/eclipse/jdt/core/*'
+        exclude 'org/eclipse/jdt/internal/compiler/apt/**'
+        exclude 'org/eclipse/jdt/internal/compiler/tool/**'
     }
 
     from (project(':mod').tasks.named('jar')) {
@@ -112,9 +117,13 @@ processResources.dependsOn(':tools:genJrtStub')
 
 tasks.register('patchAndroidJar') {
     dependsOn jar
+
+    def projectName = project.name
+    def projectVersion = project.version
+
     doLast {
-        def inputJarFile = file("build/libs/${project.name}-desktop-${project.version}.jar")
-        def outputJarFile = file("build/libs/${project.name}-android-source.jar")
+        def inputJarFile = file("build/libs/${projectName}-desktop-${projectVersion}.jar")
+        def outputJarFile = file("build/libs/${projectName}-android-source.jar")
         outputJarFile.delete()
 
         def mapping = [
@@ -201,6 +210,8 @@ tasks.register('jarAndroid') {
     dependsOn extractDesugarConfig
 
     def projectName = project.name
+    def projectDir = project.projectDir
+
     doLast {
         def dependencies = (configurations.runtimeClasspath.asList())
                 .collect{ "--classpath $it.absolutePath" }.join(" ")
@@ -221,13 +232,13 @@ tasks.register('jarAndroid') {
 
         // 1. dex the patched sources (the loader itself)
         "$javaCmd -cp $d8Cp com.android.tools.r8.D8 $dependencies $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-base.jar ${projectName}-android-source.jar"
-                .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
+                .execute(null, new File(projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
 
         // 2. pre-dex the desugar library jar with L8
         "$javaCmd -cp $d8Cp com.android.tools.r8.L8 $libraries --min-api 30 --desugared-lib ./desugar.json --output ${projectName}-android-desugar.jar $desugarLibraries"
-                .execute(null, new File(project.projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
+                .execute(null, new File(projectDir, "build/libs")).waitForProcessOutput(System.out, System.err)
 
-        def libsDir = new File(project.projectDir, "build/libs")
+        def libsDir = new File(projectDir, "build/libs")
         def baseJar = new File(libsDir, "${projectName}-android-base.jar")
         def desugarJar = new File(libsDir, "${projectName}-android-desugar.jar")
         def finalJar = new File(libsDir, "${projectName}-dex.jar")
@@ -263,22 +274,32 @@ tasks.register('localDeploy', Jar) {
 
     archiveBaseName = "${project.name}"
 
+    manifest {
+        attributes 'Main-Class': 'copper.launch.ArtBuilder'
+    }
+
+    def projectName = project.name
+    def projectVersion = project.version
+
     from {[
-            zipTree("build/libs/${project.name}-desktop-${project.version}.jar"),
-            zipTree("build/libs/${project.name}-dex.jar")
+            zipTree("build/libs/${projectName}-desktop-${projectVersion}.jar"),
+            zipTree("build/libs/${projectName}-dex.jar")
     ]}
 }
 
 tasks.register('ciDeploy') {
     dependsOn 'localDeploy'
 
+    def projectName = project.name
+    def projectVersion = project.version
+
     doLast {
-        delete "build/libs/${project.name}-desktop-${project.version}.jar"
-        delete "build/libs/${project.name}-art.jar"
-        delete "build/libs/${project.name}-android-source.jar"
-        delete "build/libs/${project.name}-android-base.jar"
-        delete "build/libs/${project.name}-android-desugar.jar"
-        delete "build/libs/${project.name}-dex.jar"
+        delete "build/libs/${projectName}-desktop-${projectVersion}.jar"
+        delete "build/libs/${projectName}-art.jar"
+        delete "build/libs/${projectName}-android-source.jar"
+        delete "build/libs/${projectName}-android-base.jar"
+        delete "build/libs/${projectName}-android-desugar.jar"
+        delete "build/libs/${projectName}-dex.jar"
         delete "build/libs/desugar.json"
     }
 }

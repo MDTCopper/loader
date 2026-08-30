@@ -3,7 +3,6 @@ package copper.core.util;
 import arc.*;
 import arc.files.*;
 import copper.loader.func.*;
-
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;

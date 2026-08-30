@@ -89,14 +89,16 @@ public class DexCompiler {
         return bytecodes;
     }
 
+    @SuppressWarnings("deprecation")
     private class SourceProvider implements ProgramResourceProvider {
+        // deprecated
         @Override
-        public Collection<ProgramResource> getProgramResources() throws ResourceException {
+        public Collection<ProgramResource> getProgramResources() {
             return sources;
         }
 
         @Override
-        public void getProgramResources(Consumer<ProgramResource> consumer) throws ResourceException {
+        public void getProgramResources(Consumer<ProgramResource> consumer) {
             for (var res : getProgramResources())
                 consumer.accept(res);
         }

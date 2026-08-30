@@ -2,7 +2,6 @@ package copper.core.net;
 
 import arc.util.io.*;
 import mindustry.net.*;
-
 import java.io.*;
 
 /**

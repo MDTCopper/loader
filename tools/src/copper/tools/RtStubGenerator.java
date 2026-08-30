@@ -53,7 +53,7 @@ public class RtStubGenerator {
 
                     StringBuilder entryNameBuilder = new StringBuilder();
                     for (int i = 2; i < nameCount; i++) {
-                        entryNameBuilder.append(path.getName(i).toString());
+                        entryNameBuilder.append(path.getName(i));
                         if (i < nameCount - 1) {
                             entryNameBuilder.append("/");
                         }

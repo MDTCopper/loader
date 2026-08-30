@@ -4,7 +4,6 @@ import copper.launch.*;
 import copper.loader.*;
 import copper.loader.util.*;
 import dalvik.system.*;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;

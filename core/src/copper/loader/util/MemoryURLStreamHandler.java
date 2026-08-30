@@ -19,7 +19,7 @@ public class MemoryURLStreamHandler extends URLStreamHandler {
     }
 
     @Override
-    protected URLConnection openConnection(URL u) throws IOException {
+    protected URLConnection openConnection(URL u) {
         return new MemoryURLConnection(u, data);
     }
 

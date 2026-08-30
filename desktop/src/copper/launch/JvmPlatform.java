@@ -30,7 +30,7 @@ public class JvmPlatform implements IPlatform {
             return target.getAbsolutePath();
         } catch (Throwable e) {
             Log.error("Failed to extract library: " + name);
-            e.printStackTrace();
+            Log.error(e);
             return null;
         }
     }

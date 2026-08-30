@@ -23,6 +23,7 @@ import java.util.*;
  * and mixin configs from in-memory {@code copper://} URIs. Captures the
  * framework's {@link IMixinTransformer} during wiring for later use by containers.</p>
  */
+@SuppressWarnings("deprecation")
 public class MixinEngineService extends MixinServiceAbstract implements ITransformerProvider, IClassProvider, IClassBytecodeProvider {
     @Override
     public String getName() {
@@ -92,17 +93,17 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
     }
 
     @Override
-    public ClassNode getClassNode(String name) throws ClassNotFoundException, IOException {
+    public ClassNode getClassNode(String name) throws ClassNotFoundException {
         return getClassNode(name, true);
     }
 
     @Override
-    public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
+    public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException {
         return getClassNode(name, runTransformers, 0);
     }
 
     @Override
-    public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException, IOException {
+    public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException {
         byte[] code = MixinEngine.bytecodeProvider.get(name);
         if (code == null)
             throw new ClassNotFoundException(name);
@@ -145,7 +146,7 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
     @Override
     public void addTransformerExclusion(String name) {}
 
-    @SuppressWarnings("deprecation")
+    // deprecated
     @Override
     public void wire(MixinEnvironment.Phase phase, IConsumer<MixinEnvironment.Phase> phaseConsumer) {
         MixinEngine.phaseConsumer = phaseConsumer;

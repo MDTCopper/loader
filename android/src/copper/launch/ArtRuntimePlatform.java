@@ -5,7 +5,6 @@ import copper.loader.container.*;
 import copper.loader.container.resource.*;
 import copper.loader.mixin.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.util.zip.*;
 

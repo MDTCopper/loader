@@ -20,8 +20,10 @@ dependencies {
 }
 
 tasks.register('writeVersion') {
+    def projectDir = project(':core').projectDir
+
     doLast {
-        def pfile = new File(project(':core').projectDir, 'res/version.properties')
+        def pfile = new File(projectDir, 'res/version.properties')
         def props = new Properties()
         def write = true
 

@@ -3,7 +3,6 @@ package copper.loader.mixin;
 import copper.launch.*;
 import copper.loader.container.*;
 import copper.loader.util.*;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;

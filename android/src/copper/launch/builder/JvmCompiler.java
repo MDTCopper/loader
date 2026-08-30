@@ -207,8 +207,7 @@ public class JvmCompiler {
         }
 
         public void addClassPath(File jar, ClassFilter filter) {
-            try {
-                ZipFile zip = new ZipFile(jar);
+            try (var zip = new ZipFile(jar)) {
                 var entries = zip.entries();
                 while (entries.hasMoreElements()) {
                     var entry = entries.nextElement();
@@ -251,7 +250,7 @@ public class JvmCompiler {
                     ClassFileReader classFileReader = new ClassFileReader(code, name.toCharArray(), true);
                     return new NameEnvironmentAnswer(classFileReader, null);
                 } catch (ClassFormatException e) {
-                    e.printStackTrace();
+                    Log.error(e);
                 }
             }
             return null;

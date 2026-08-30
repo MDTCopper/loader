@@ -1,7 +1,5 @@
 package copper.loader.container.resource;
 
-import java.util.*;
-
 /**
  * A generic resource reader that returns raw bytes for a given path.
  */

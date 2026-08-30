@@ -153,7 +153,7 @@ public class JvmMixinContainer extends MixinContainer {
         }
 
         @Override
-        protected Enumeration<URL> findResources(String name) throws IOException {
+        protected Enumeration<URL> findResources(String name) {
             URL url = findResource(name);
             if (url == null)
                 return Collections.emptyEnumeration();

@@ -1,6 +1,5 @@
 package copper.core.patch.impl;
 
-import arc.func.*;
 import copper.core.net.*;
 import copper.loader.*;
 import mindustry.net.*;

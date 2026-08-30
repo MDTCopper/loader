@@ -1,7 +1,6 @@
 package copper.loader.container.resource;
 
 import copper.loader.util.*;
-
 import java.io.*;
 
 /**

@@ -2,8 +2,6 @@ package copper.loader;
 
 import copper.loader.container.*;
 import copper.loader.mixin.*;
-import copper.loader.mod.*;
-
 import java.io.*;
 
 /**

@@ -17,6 +17,7 @@ import java.util.zip.*;
  * implements d8's provider interfaces so it can be passed straight to
  * {@link DexCompiler} as a source, classpath or library.</p>
  */
+@SuppressWarnings("deprecation")
 public class D8Resource implements ClassFileResourceProvider, ProgramResourceProvider {
     /** Map of class descriptor to program resource. */
     private Map<String, ProgramResource> codes;
@@ -26,12 +27,12 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
     }
 
     /** Reads every class of a jar file. */
-    public D8Resource(File jar) throws IOException {
+    public D8Resource(File jar) {
         this(jar, null);
     }
 
     /** Reads the classes of a jar file that pass the filter. */
-    public D8Resource(File jar, ClassFilter filter) throws IOException {
+    public D8Resource(File jar, ClassFilter filter) {
         codes = new HashMap<>();
         try (var zip = new ZipFile(jar)) {
             var entries = zip.entries();
@@ -151,6 +152,7 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
         return codes.get(s);
     }
 
+    // deprecated
     @Override
     public Collection<ProgramResource> getProgramResources() {
         return codes.values();
@@ -165,6 +167,7 @@ public class D8Resource implements ClassFileResourceProvider, ProgramResourcePro
     @Override
     public void finished(DiagnosticsHandler handler) {}
 
+    // deprecated
     @Override
     public DataResourceProvider getDataResourceProvider() {
         return null;
