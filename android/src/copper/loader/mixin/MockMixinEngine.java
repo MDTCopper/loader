@@ -21,7 +21,7 @@ public class MockMixinEngine implements IMixinEngine {
 
     @Override
     public byte[] transform(String name, byte[] code) {
-        return new byte[0];
+        return null;
     }
 
     @Override
