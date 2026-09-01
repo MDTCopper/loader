@@ -19,7 +19,6 @@ public class ArtLauncher {
 
         try {
             ArgParser parser = new ArgParser("CopperLoader", "A mindustry loader to load copper mods.");
-            parser.setPositionalDescription("mindustry args");
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> ArtPlatform.gameDataFolder = new File(path));
             parser.addOption("L", "loader-jar", "Loader jar path", "path", path -> ArtPlatform.jarFile = new File(path));
             parser.addOption("C", "cache-path", "Cache path", "path", path -> ArtPlatform.cacheFolder = new File(path));
@@ -70,6 +69,8 @@ public class ArtLauncher {
     }
 
     private static void writeFile(File file, String content) throws IOException {
+        if (file.exists())
+            return;
         try (var fos = new FileOutputStream(file)) {
             fos.write(content.getBytes(StandardCharsets.UTF_8));
         }

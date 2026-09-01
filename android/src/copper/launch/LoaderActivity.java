@@ -74,7 +74,7 @@ public class LoaderActivity extends Activity {
 
     @Override
     public File getCacheDir() {
-        File cache = new File(super.getCacheDir(), "mindustry");
+        File cache = new File(Loader.vars.gameDataFolder, "cache");
         cache.mkdirs();
         return cache;
     }
