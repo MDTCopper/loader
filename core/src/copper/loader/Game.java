@@ -80,11 +80,17 @@ public class Game {
      * @throws RuntimeException if the variant is unknown or the main class is not found
      */
     public Class<?> getMainClass() {
-        if (variant == Variant.Unknown)
+        String name;
+        if (Loader.vars.customGameMainClass != null)
+            name = Loader.vars.customGameMainClass;
+        else if (variant == Variant.Unknown)
             throw new RuntimeException("failed to get main class of unknown variant of game");
-        Class<?> main = container.loadOwnClass(variant.mainClass);
+        else
+            name = variant.mainClass;
+
+        Class<?> main = container.loadOwnClass(name);
         if (main == null)
-            throw new RuntimeException("failed to find game main class: " + variant.mainClass);
+            throw new RuntimeException("failed to find game main class: " + name);
         return main;
     }
 

@@ -6,7 +6,7 @@ import copper.loader.func.*;
  * A no-op {@link IMixinEngine} used at runtime on Android.
  *
  * <p>All mixins were already applied to the dex during the build phase, so the
- * runtime never transforms anything: {@link #transform} just returns an empty
+ * runtime never transforms anything: {@link #transform} just returns a null
  * array and every other call does nothing.</p>
  */
 public class MockMixinEngine implements IMixinEngine {

@@ -22,8 +22,9 @@ public class JvmLauncher {
         try {
             ArgParser parser = new ArgParser("CopperLoader", "A mindustry loader to load copper mods.");
             parser.setPositionalDescription("mindustry args");
-            parser.addOption("G", "game-jar", "Game jar file path", "path", path -> JvmPlatform.gameJar = new File(path));
+            parser.addOption("G", "game-jar", "Game jar class path", "path", path -> JvmPlatform.gameJars.add(new File(path)));
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> JvmPlatform.gameData = new File(path));
+            parser.addOption(null, "main", "Custom game main class", "class name");
             parser.addFlag("d", "debug", "Enable debug log output", () -> Log.setLevel(Log.Level.DEBUG));
             parser.addFlag(null, "verbose", "Enable verbose log output", () -> Log.setLevel(Log.Level.VERBOSE));
             parser.addFlag("v", "version", "Display loader version then exit", JvmLauncher::displayVersion);
@@ -33,7 +34,7 @@ public class JvmLauncher {
             parser.addOption(null, "mixin-flag", "Add mixin flag for mod", "modId,flag1,flag2,...");
             parser.parse(args);
 
-            if (JvmPlatform.gameJar == null)
+            if (JvmPlatform.gameJars.isEmpty())
                 throw new RuntimeException("no game jar provided");
             if (JvmPlatform.gameData == null)
                 JvmPlatform.gameData = new File(".mindustry");
@@ -44,6 +45,8 @@ public class JvmLauncher {
                 System.exit(0);
             }
 
+            if (parser.hasOption("main"))
+                Loader.vars.customGameMainClass = parser.getOptionValue("main");
             Loader.init();
 
             for (String id : parser.getOptionValues("mixin-log")) {

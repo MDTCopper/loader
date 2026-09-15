@@ -29,9 +29,10 @@ public class Vars {
 
     /** When {@code true}, loads the vanilla game without the non-hidden copper core mod. */
     public boolean vanillaMode = false;
-
     /** When {@code false}, skips writing logs to the file. */
     public boolean writeFileLog = true;
+    /** When non {@code null}, uses it as the main class of the game (e.g., {@code com.example.MyClass}). */
+    public String customGameMainClass = null;
 
     /** Whether {@link #init()} has already run. */
     private boolean inited = false;

@@ -4,7 +4,6 @@ import copper.loader.*;
 import copper.loader.container.*;
 import copper.loader.container.resource.*;
 import copper.loader.mixin.*;
-import copper.loader.mod.*;
 import copper.loader.util.*;
 import java.io.*;
 import java.util.*;
@@ -17,8 +16,8 @@ import java.util.zip.*;
  * and a classloader-isolated mixin engine.</p>
  */
 public class JvmPlatform implements IPlatform {
-    /** Path to the game jar file. */
-    public static File gameJar;
+    /** Path to the game jar files. */
+    public static List<File> gameJars = new ArrayList<>();
     /** Game data directory (default: {@code .mindustry}). */
     public static File gameData;
 
@@ -64,12 +63,12 @@ public class JvmPlatform implements IPlatform {
 
     @Override
     public MixinContainer createModContainer(File file) {
-        return createJarContainer(file);
+        return createJarContainer(List.of(file));
     }
 
     @Override
     public MixinContainer createGameContainer() {
-        return createJarContainer(gameJar);
+        return createJarContainer(gameJars);
     }
 
     @Override
@@ -83,11 +82,13 @@ public class JvmPlatform implements IPlatform {
     }
 
     /** Creates a {@link JvmMixinContainer} backed by a zip/jar file. */
-    private MixinContainer createJarContainer(File file) {
+    private MixinContainer createJarContainer(List<File> files) {
         try {
             MixinContainer container = new JvmMixinContainer();
-            ZipFile zip = new ZipFile(file);
-            container.resource.resources.add(new ZipResource(zip));
+            for (var file : files) {
+                ZipFile zip = new ZipFile(file);
+                container.resource.resources.add(new ZipResource(zip));
+            }
             return container;
         } catch (Throwable e) {
             throw new RuntimeException("failed to create container", e);
