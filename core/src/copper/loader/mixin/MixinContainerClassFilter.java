@@ -33,7 +33,7 @@ import copper.loader.container.*;
  *
  * <p>Any class that does not match a rule is loaded by the parent classloader
  * via normal delegation, ensuring the mixin engine can still access standard
- * library classes and game classes.</p>
+ * library classes.</p>
  */
 public class MixinContainerClassFilter extends ClassFilter {
     public MixinContainerClassFilter() {
