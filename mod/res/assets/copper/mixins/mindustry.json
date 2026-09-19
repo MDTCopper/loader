@@ -15,9 +15,9 @@
         "CSettingsCategory",
         "CSettingsMenuDialog"
       ],
-      "<8.0.27179 || (>= 8.1 <8.159)": "CNetBackport",
+      "<8.0.27179 || (>=8.1 <8.159)": "CNetBackport",
       "(>=8.0.27179 <8.1) || >=8.159": "CNet",
-      "<8.0.25295 || (>= 8.1 <8.147)": [
+      "<8.0.25295 || (>=8.1 <8.147)": [
         "CScriptsBackport",
         "ICScriptsAccessor",
         "CScriptModuleProviderBackport"

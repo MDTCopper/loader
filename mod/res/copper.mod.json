@@ -10,6 +10,9 @@
     "repo": "MDTCopper/loader",
     "mixins": {
       "mindustry": "mixins/mindustry.json"
+    },
+    "dependencies": {
+      "mindustry": ">=7.146 || (<7.1 >=7.0.24369)"
     }
   }
 }
