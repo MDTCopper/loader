@@ -86,8 +86,9 @@ public class JvmPlatform implements IPlatform {
         try {
             MixinContainer container = new JvmMixinContainer();
             for (var file : files) {
-                ZipFile zip = new ZipFile(file);
-                container.resource.resources.add(new ZipResource(zip));
+                IResource res = file.isDirectory() ? new FolderResource(file) :
+                        new ZipResource(new ZipFile(file));
+                container.resource.resources.add(res);
             }
             return container;
         } catch (Throwable e) {

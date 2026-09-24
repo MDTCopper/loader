@@ -22,7 +22,7 @@ public class JvmLauncher {
         try {
             ArgParser parser = new ArgParser("CopperLoader", "A mindustry loader to load copper mods.");
             parser.setPositionalDescription("mindustry args");
-            parser.addOption("G", "game-jar", "Game jar class path", "path", path -> JvmPlatform.gameJars.add(new File(path)));
+            parser.addOption("G", "game-jar", "Game jar or folder class path", "path", path -> JvmPlatform.gameJars.add(new File(path)));
             parser.addOption("D", "game-data", "Game data folder path", "path", path -> JvmPlatform.gameData = new File(path));
             parser.addOption(null, "main", "Custom game main class", "class name");
             parser.addFlag("d", "debug", "Enable debug log output", () -> Log.setLevel(Log.Level.DEBUG));
