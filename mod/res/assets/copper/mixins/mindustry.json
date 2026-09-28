@@ -21,7 +21,8 @@
         "CScriptsBackport",
         "ICScriptsAccessor",
         "CScriptModuleProviderBackport"
-      ]
+      ],
+      "(>=8.0.25295 <8.1) || >=8.147": "CCrashHandler"
     }
   }
 }
