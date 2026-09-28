@@ -89,7 +89,7 @@ public class ArtBuilder {
             Log.setOutputFile(new File(ArtPlatform.cacheFolder, "last_log.txt"));
             dexCache = new DexCache(new File(ArtPlatform.cacheFolder, "dex"));
 
-            Log.info("CopperArtBuilder v" + Loader.vars.loaderVersion.toString());
+            Log.info("CopperArtBuilder " + Loader.vars.loaderVersion.versionLabel());
 
             if (parser.hasOption("clear")) {
                 Log.info("Cleaning built cache.");

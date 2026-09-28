@@ -94,7 +94,7 @@ public class JvmLauncher {
         Loader.platform = new JvmPlatform();
         Loader.vars = new Vars();
         Loader.vars.init();
-        Log.info("CopperLoader v" + Loader.vars.loaderVersion.toString());
+        Log.info("CopperLoader " + Loader.vars.loaderVersion.versionLabel());
         System.exit(0);
     }
 }

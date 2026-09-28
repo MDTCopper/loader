@@ -1,17 +1,30 @@
 name: Build and Release
 
+# A push to main and a version tag both update the snapshot release, from the commit that was pushed.
+# A tag also publishes the versioned release, built with -Prelease - the only thing that lets the
+# version in gradle.properties reach an artifact.
 on:
   push:
+    branches:
+      - main
+    # Version tags start with a digit; the "snapshot" tag must not build a release of its own.
     tags:
-      - '*'
+      - '[0-9]*'
+
+# A newer snapshot supersedes an older one; a tagged run is never cancelled by a push to main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_type == 'tag' && github.ref_name || 'snapshot' }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
+
+permissions: {}
 
 jobs:
   build-and-release:
-    name: Build and Create Release
+    name: Build and Release
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: write # for the release, its assets, and the snapshot tag
 
     steps:
       - name: Checkout repository
@@ -30,14 +43,55 @@ jobs:
         run: |
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
 
-      - name: Build Tasks
-        run: ./gradlew desktop:jar android:ciDeploy
+      # Only a tag gets this pass: -Prelease is what puts the version into the artifact.
+      - name: Build the release jars
+        if: github.ref_type == 'tag'
+        run: |
+          ./gradlew desktop:jar android:ciDeploy -Prelease
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/release"
+          mv desktop/build/libs/*.jar android/build/libs/*.jar "$GITHUB_WORKSPACE/artifacts/release/"
+
+      # Every run ends with this pass, and each pass moves its jars out, so neither release can pick up
+      # the other's. What it pushed is passed in: the commit a snapshot prints has to be one the remote
+      # has, and the CI is what knows that.
+      - name: Build the snapshot jars
+        run: |
+          ./gradlew desktop:jar android:ciDeploy -PbuildCommit=${{ github.sha }}
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/snapshot"
+          mv desktop/build/libs/*.jar android/build/libs/*.jar "$GITHUB_WORKSPACE/artifacts/snapshot/"
 
       - name: Publish Release and Upload Artifacts
         uses: softprops/action-gh-release@v3
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.ref_type == 'tag'
         with:
           generate_release_notes: true
           files: |
-            desktop/build/libs/*.jar
-            android/build/libs/*.jar
+            artifacts/release/*.jar
+
+      # Updating a release leaves its tag where it was, so move the snapshot tag (absent on the first
+      # run) to this commit.
+      - name: Point the snapshot tag at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/git/ref/tags/snapshot" > /dev/null 2>&1; then
+            gh api --method PATCH "repos/${{ github.repository }}/git/refs/tags/snapshot" \
+              -f sha="${{ github.sha }}" -F force=true
+          fi
+
+      # The action replaces the asset of the same name, so this stays the same release.
+      - name: Publish or Update the Snapshot Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: snapshot
+          target_commitish: ${{ github.sha }}
+          name: Snapshot
+          prerelease: true
+          body: |
+            The newest build (`${{ github.sha }}`), replaced on every push.
+
+            No version number: the artifacts are `desktop-snapshot.jar` and `android-snapshot.jar`, and
+            a running loader prints `snapshot+<commit>`. Use a versioned release for something that
+            does not move.
+          files: |
+            artifacts/snapshot/*.jar

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 public abstract class CVersion {
     @Inject(method = "combined", at = @At("RETURN"), cancellable = true)
     private static void cAddCopperVersion(CallbackInfoReturnable<String> ci) {
-        String txt = ci.getReturnValue() + " + " + "copper v" + Loader.vars.loaderVersion.toString();
+        String txt = ci.getReturnValue() + " + " + "copper " + Loader.vars.loaderVersion.versionLabel();
         // mark the version string when running the vanilla game
         if (Loader.vars.vanillaMode)
             txt += " (vanilla mode)";

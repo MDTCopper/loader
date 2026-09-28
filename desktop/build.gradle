@@ -28,6 +28,7 @@ jar {
         exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
         exclude 'module-info.class', '**/module-info.class'
         exclude 'META-INF/maven/**'
+        exclude 'LICENSE', 'LICENSE*', 'license', 'license*'
     }
     from (project(':mod').tasks.named('jar')) {
         rename { 'core-mod.jar' }

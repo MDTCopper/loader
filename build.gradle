@@ -1,4 +1,57 @@
 
+// Only -Prelease uses the version in gradle.properties; every other build is "snapshot", so a jar that
+// was never tagged cannot claim a release number.
+def release = project.hasProperty('release')
+// the declared version, read before the ext below takes the buildVersion name over
+def declaredVersion = property('buildVersion')
+def loaderVersion = release ? declaredVersion : 'snapshot'
+
+// The build stamp a snapshot carries, the same one the bridge builds with. Every build without
+// -Prelease calls itself "snapshot", so the version alone cannot say which code is inside; that is the
+// commit it was built from, and only a commit the remote has counts - a local commit, a changed tree or
+// a build with no git is a custom build and says so. The CI passes what it pushed with -PbuildCommit.
+def gitQuery = { List<String> args ->
+    def out = new ByteArrayOutputStream()
+    try {
+        def execOps = project.services.get(org.gradle.process.ExecOperations)
+        def result = execOps.exec { spec ->
+            spec.commandLine(['git'] + args)
+            spec.workingDir = rootProject.projectDir
+            spec.standardOutput = out
+            spec.errorOutput = new ByteArrayOutputStream()
+            spec.ignoreExitValue = true
+        }
+        return result.exitValue == 0 ? out.toString('UTF-8').trim() : null
+    } catch (Throwable ignored) {
+        return null
+    }
+}
+def commit = ''
+def custom = false
+if (!release) {
+    def passed = project.findProperty('buildCommit')
+    def fromCi = System.getenv('GITHUB_SHA')
+    if (passed != null && !passed.trim().isEmpty()) {
+        commit = passed.trim().take(7)
+    } else {
+        def head = gitQuery(['rev-parse', '--verify', '--short', 'HEAD'])
+        if (head != null) {
+            def onRemote = gitQuery(['branch', '--remotes', '--contains', 'HEAD'])
+            def changes = gitQuery(['status', '--porcelain'])
+            if (onRemote != null && !onRemote.isEmpty() && changes != null && changes.isEmpty())
+                commit = head
+            else
+                custom = true
+        } else if (fromCi != null && !fromCi.trim().isEmpty()) {
+            commit = fromCi.trim().take(7)
+        } else {
+            custom = true
+        }
+    }
+}
+
+logger.lifecycle("loader ${loaderVersion}" + (custom ? ' (custom)' : commit ? " (${commit})" : ''))
+
 allprojects {
     repositories {
         mavenLocal()
@@ -8,7 +61,12 @@ allprojects {
     }
 
     ext {
-        buildVersion = property("buildVersion")
+        buildVersion = loaderVersion
+        // the declared version: a snapshot stamps it for mod dependency checks, not to display it
+        releaseVersion = declaredVersion
+        buildSnapshot = !release
+        buildCommit = commit
+        buildCustom = custom
         asmVersion = property("asmVersion")
         mixinVersion = property("mixinVersion")
         // for core mod

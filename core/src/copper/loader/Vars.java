@@ -1,11 +1,9 @@
 package copper.loader;
 
 import copper.loader.container.*;
-import copper.loader.mod.*;
 import copper.loader.util.*;
 import java.io.*;
 import java.nio.charset.*;
-import java.util.*;
 
 /**
  * Holds all runtime paths and loader metadata.
@@ -24,8 +22,11 @@ public class Vars {
 
     /** Container representing the loader's own classes. */
     public Container loaderContainer;
-    /** The installed loader version, read from {@code version.properties}. */
-    public SemanticVersion loaderVersion;
+    /**
+     * The installed loader version and what identifies this build, read from {@code version.properties}.
+     * Always numeric for mod dependency checks; {@link LoaderVersion#versionLabel()} is the readable form.
+     */
+    public LoaderVersion loaderVersion;
 
     /** When {@code true}, loads the vanilla game without the non-hidden copper core mod. */
     public boolean vanillaMode = false;
@@ -64,9 +65,7 @@ public class Vars {
 
         try {
             String ver = new String(loaderContainer.resource.get("version.properties"), StandardCharsets.UTF_8);
-            Properties properties = new Properties();
-            properties.load(new StringReader(ver));
-            loaderVersion = new SemanticVersion(properties.getProperty("version", "0.0.0"));
+            loaderVersion = new LoaderVersion(ver);
         } catch (Throwable e) {
             throw new RuntimeException("failed to read loader version", e);
         }
