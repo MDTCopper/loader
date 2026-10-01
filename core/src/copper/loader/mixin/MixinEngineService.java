@@ -120,12 +120,22 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
 
     @Override
     public Class<?> findClass(String name) throws ClassNotFoundException {
-        return Class.forName(name, false, MixinEngineService.class.getClassLoader());
+        return findClass(name, false);
     }
 
     @Override
     public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
-        return Class.forName(name, initialize, MixinEngine.class.getClassLoader());
+        try {
+            return Class.forName(name, initialize, MixinEngine.class.getClassLoader());
+        } catch (ClassNotFoundException e) {
+            // a mixin's target class belongs to a container, not to the engine's own classpath;
+            // the hot swap agent needs it to redefine the target when a mixin is reloaded
+            Class<?> clazz = MixinEngine.classProvider == null ? null :
+                    MixinEngine.classProvider.get(name);
+            if (clazz == null)
+                throw e;
+            return clazz;
+        }
     }
 
     @Override

@@ -32,6 +32,8 @@ public class JvmLauncher {
             parser.addFlag(null, "init", "Create data folders then exit");
             parser.addOption(null, "mixin-log", "Enable mixin log for mod", "modId");
             parser.addOption(null, "mixin-flag", "Add mixin flag for mod", "modId,flag1,flag2,...");
+            parser.addOption(null, "mod-debug-classpath", "Classpath of the mod to debug", "classpath");
+            parser.addOption(null, "mod-debug-jar", "Jar path of the mod to debug", "path");
             parser.parse(args);
 
             if (JvmPlatform.gameJars.isEmpty())
@@ -49,22 +51,14 @@ public class JvmLauncher {
                 Loader.vars.customGameMainClass = parser.getOptionValue("main");
             Loader.init();
 
-            for (String id : parser.getOptionValues("mixin-log")) {
-                MixinContainer c = findContainer(id);
-                if (c instanceof JvmMixinContainer container)
-                    container.setMixinLogEnabled(true);
-            }
-
-            for (String desc : parser.getOptionValues("mixin-flag")) {
-                String[] parts = desc.split(",");
-                MixinContainer c = findContainer(parts[0]);
-                if (c instanceof JvmMixinContainer container) {
-                    for (int i = 1; i < parts.length; i++)
-                        container.addMixinFlag(parts[i].trim());
-                }
-            }
+            setupMixinOptions(parser);
+            setupDebug(parser);
 
             Loader.launch();
+
+            if (JvmAgent.isAttached())
+                JvmAgent.launchDebug();
+
             Log.info("Launching game.");
             Loader.mods.bootstrap();
             Loader.game.getMainClass()
@@ -73,6 +67,47 @@ public class JvmLauncher {
         } catch (Throwable e) {
             Log.error(e);
             System.exit(1);
+        }
+    }
+
+    private static void setupMixinOptions(ArgParser parser) {
+        for (String id : parser.getOptionValues("mixin-log")) {
+            MixinContainer c = findContainer(id);
+            if (c instanceof JvmMixinContainer container)
+                container.setMixinLogEnabled(true);
+        }
+
+        for (String desc : parser.getOptionValues("mixin-flag")) {
+            String[] parts = desc.split(",");
+            MixinContainer c = findContainer(parts[0]);
+            if (c instanceof JvmMixinContainer container) {
+                for (int i = 1; i < parts.length; i++)
+                    container.addMixinFlag(parts[i].trim());
+            }
+        }
+    }
+
+    private static void setupDebug(ArgParser parser) {
+        if (parser.hasOption("mod-debug-jar")) {
+            if (parser.hasOption("mod-debug-classpath")) {
+                File jar = new File(parser.getOptionValue("mod-debug-jar"));
+                File cp = new File(parser.getOptionValue("mod-debug-classpath"));
+                Mod mod = Loader.mods.getModByFile(jar);
+                if (mod == null) {
+                    JvmAgent.dispose();
+                    Log.warn("the mod requested to debug is not loaded by loader, ignoring mod debug request");
+                } else {
+                    JvmAgent.attachDebug(mod, cp);
+                }
+            } else {
+                JvmAgent.dispose();
+                Log.warn("no mod debug classpath is provided, ignoring mod debug request");
+            }
+        } else if (parser.hasOption("mod-debug-classpath")) {
+            JvmAgent.dispose();
+            Log.warn("no mod debug jar is provided, ignoring mod debug request");
+        } else {
+            JvmAgent.dispose();
         }
     }
 

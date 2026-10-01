@@ -14,6 +14,9 @@ public class MockMixinEngine implements IMixinEngine {
     public void setBytecodeProvider(Func<String, byte[]> bytecodeProvider) {}
 
     @Override
+    public void setClassProvider(Func<String, Class<?>> classProvider) {}
+
+    @Override
     public void addConfig(String config, String id) {}
 
     @Override

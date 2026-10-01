@@ -5,7 +5,9 @@ import copper.loader.container.info.*;
 import copper.loader.mixin.*;
 import copper.loader.util.*;
 import java.io.*;
+import java.lang.instrument.*;
 import java.net.*;
+import java.security.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -40,6 +42,40 @@ public class JvmMixinContainer extends MixinContainer {
     @Override
     public ClassLoader getClassLoader() {
         return loader;
+    }
+
+    public void setupAgent(Instrumentation instrumentation, boolean allowRedefine, boolean allowRemixin) {
+        if (mixinEngine == null)
+            return;
+        try {
+            IMixinAgent agent = (IMixinAgent) mixinEngine.getClass().getClassLoader()
+                    .loadClass("copper.loader.mixin.MixinAgent")
+                    .getDeclaredMethod("getInstance")
+                    .invoke(null);
+
+            agent.setup(instrumentation, target -> new ClassFileTransformer() {
+                @Override
+                public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+                    if (loader == null)
+                        return classfileBuffer;
+                    if (loader == JvmMixinContainer.this.loader) {
+                        return allowRedefine ? target.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer) :
+                                JvmMixinContainer.this.getOwnBytecode(className.replace('/', '.'));
+                    } else if (loader == agent.getStubLoader()) {
+                        if (!allowRemixin)
+                            return agent.getStubClassBytecode(classBeingRedefined);
+                        // a mixin class is about to be reloaded: drop the cached transforms so
+                        // re-applying it to this container's targets picks up the new mixin
+                        transformedBytecodes.clear();
+                        return target.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+                    } else {
+                        return classfileBuffer;
+                    }
+                }
+            });
+        } catch (Throwable e) {
+            throw new RuntimeException("failed to setup agent for mixin engine: " + id, e);
+        }
     }
 
     /**

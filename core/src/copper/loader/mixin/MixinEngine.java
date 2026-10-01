@@ -17,6 +17,7 @@ import java.util.*;
  */
 public class MixinEngine implements IMixinEngine {
     static Func<String, byte[]> bytecodeProvider;
+    static Func<String, Class<?>> classProvider;
     static boolean enableLog = false;
     static String id = "unknown";
     static Map<String, String> config = new HashMap<>();
@@ -37,6 +38,11 @@ public class MixinEngine implements IMixinEngine {
     @Override
     public void setBytecodeProvider(Func<String, byte[]> bytecodeProvider) {
         MixinEngine.bytecodeProvider = bytecodeProvider;
+    }
+
+    @Override
+    public void setClassProvider(Func<String, Class<?>> classProvider) {
+        MixinEngine.classProvider = classProvider;
     }
 
     @Override
@@ -85,5 +91,9 @@ public class MixinEngine implements IMixinEngine {
     public void setFlag(String flag) {
         MixinEnvironment.Option option = MixinEnvironment.Option.valueOf(flag);
         MixinEnvironment.getCurrentEnvironment().setOption(option, true);
+    }
+
+    static boolean isStarted() {
+        return started;
     }
 }

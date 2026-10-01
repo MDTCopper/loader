@@ -14,6 +14,8 @@ import copper.loader.container.*;
  *   <li><b>Included</b> in the isolated classloader:
  *     <ul>
  *       <li>{@code org.spongepowered.asm.*} — the Mixin framework itself</li>
+ *       <li>{@code org.spongepowered.tools.agent.*} — the hot swap agent, which the
+ *           framework's transformer instantiates from inside the isolated classloader</li>
  *       <li>{@code copper.loader.mixin.*} — Copper's mixin integration classes
  *           ({@link MixinEngine}, {@link MixinEngineService}, etc.)</li>
  *     </ul>
@@ -39,8 +41,10 @@ public class MixinContainerClassFilter extends ClassFilter {
     public MixinContainerClassFilter() {
         super();
         addRule("exclude copper.loader.mixin.IMixinEngine");
+        addRule("exclude copper.loader.mixin.IMixinAgent");
         addRule("exclude copper.loader.mixin.MixinContainerClassFilter");
         addRule("include org.spongepowered.asm.*");
+        addRule("include org.spongepowered.tools.agent.*");
         addRule("include copper.loader.mixin.*");
         addRule("exclude copper.loader.*");
     }

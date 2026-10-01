@@ -17,7 +17,12 @@ jar {
     dependsOn configurations.runtimeClasspath
 
     manifest {
-        attributes 'Main-Class': 'copper.launch.JvmLauncher'
+        attributes (
+            'Main-Class': 'copper.launch.JvmLauncher',
+            'Launcher-Agent-Class': 'copper.launch.JvmAgent',
+            'Can-Redefine-Classes': true,
+            'Can-Retransform-Classes': true
+        )
     }
 
     from ({

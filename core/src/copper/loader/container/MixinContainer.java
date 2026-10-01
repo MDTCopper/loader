@@ -26,15 +26,15 @@ public abstract class MixinContainer extends Container {
 
     protected IMixinEngine mixinEngine;
     protected boolean mixinLogEnabled;
-    protected List<String> mixinFlag;
-    protected Map<String, byte[]> transformedBytecode;
+    protected List<String> mixinFlags;
+    protected Map<String, byte[]> transformedBytecodes;
 
     MixinContainer() {
         mixins = new ArrayList<>();
         mixinEngine = null;
         mixinLogEnabled = false;
-        mixinFlag = new ArrayList<>();
-        transformedBytecode = new ConcurrentHashMap<>();
+        mixinFlags = new ArrayList<>();
+        transformedBytecodes = new ConcurrentHashMap<>();
     }
 
     /**
@@ -55,10 +55,14 @@ public abstract class MixinContainer extends Container {
                     code = getAccessibleBytecode(name);
                 return code;
             });
+            mixinEngine.setClassProvider(name -> {
+                Class<?> clazz = loadOwnClass(name);
+                return clazz != null ? clazz : getAccessibleClass(name);
+            });
             mixinEngine.setEngineId(id);
             mixinEngine.setLogEnabled(mixinLogEnabled);
             mixinEngine.bootstrap();
-            for (String flag : mixinFlag)
+            for (String flag : mixinFlags)
                 mixinEngine.setFlag(flag);
             for (MixinInfo info : mixins)
                 mixinEngine.addConfig(info.config, info.container.id.replace(':', '-'));
@@ -108,7 +112,7 @@ public abstract class MixinContainer extends Container {
      */
     @Override
     public byte[] getOwnBytecode(String name) {
-        byte[] code = transformedBytecode.get(name);
+        byte[] code = transformedBytecodes.get(name);
         if (code == null) {
             code = super.getOwnBytecode(name);
             // if container is ready, try transform
@@ -116,7 +120,7 @@ public abstract class MixinContainer extends Container {
             if (mixinEngine != null) {
                 byte[] transformed = mixinEngine.transform(name, code);
                 if (transformed != null) {
-                    transformedBytecode.put(name, transformed);
+                    transformedBytecodes.put(name, transformed);
                     code = transformed;
                 }
             }
@@ -135,6 +139,6 @@ public abstract class MixinContainer extends Container {
     public void addMixinFlag(String v) {
         if (mixinEngine != null)
             mixinEngine.setFlag(v);
-        mixinFlag.add(v);
+        mixinFlags.add(v);
     }
 }

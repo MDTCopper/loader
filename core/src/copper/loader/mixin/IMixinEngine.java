@@ -13,6 +13,12 @@ public interface IMixinEngine {
     /** Sets the bytecode provider used to resolve class bytes during transformation. */
     void setBytecodeProvider(Func<String, byte[]> bytecodeProvider);
 
+    /**
+     * Sets the provider used to resolve classes that live in a container rather than on the
+     * engine's own classpath, such as the targets of a mixin.
+     */
+    void setClassProvider(Func<String, Class<?>> classProvider);
+
     /** Registers a mixin configuration JSON. */
     void addConfig(String config, String id);
 
