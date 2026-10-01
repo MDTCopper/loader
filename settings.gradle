@@ -1,6 +1,24 @@
 rootProject.name = 'loader'
+
 include 'core'
 include 'desktop'
 include 'mod'
-include 'android'
 include 'tools'
+
+// The android subproject fails the whole build when it finds no Android SDK, even for tasks that need
+// nothing from it, so it is included only when one is configured. JitPack publishes no android
+// artifact, so it never builds the dex pool there.
+def androidSdk = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')
+def hasAndroidPlatform = androidSdk != null && new File(androidSdk, 'platforms').listFiles()?.any { platform ->
+    new File(platform, 'android.jar').exists()
+}
+// an empty variable is still present, hence the trim
+def onJitpack = (System.getenv('JITPACK') ?: '').trim()
+
+if (hasAndroidPlatform && !onJitpack) {
+    include 'android'
+} else {
+    println("loader: skipping the 'android' project ("
+            + (onJitpack ? 'JitPack publishes no android artifact'
+                         : 'no Android SDK found, set ANDROID_HOME to build it') + ')')
+}

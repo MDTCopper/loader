@@ -1,0 +1,3 @@
+# JitPack builds with JDK 8 unless told otherwise, and the pinned Gradle 9.7.1 refuses to start below 17.
+jdk:
+  - openjdk17

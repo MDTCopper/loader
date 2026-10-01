@@ -1,8 +1,7 @@
 name: Build and Release
 
 # A push to main and a version tag both update the snapshot release, from the commit that was pushed.
-# A tag also publishes the versioned release, built with -Prelease - the only thing that lets the
-# version in gradle.properties reach an artifact.
+# A tag also publishes the versioned release, under the tag it was pushed for.
 on:
   push:
     branches:
@@ -43,11 +42,15 @@ jobs:
         run: |
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
 
-      # Only a tag gets this pass: -Prelease is what puts the version into the artifact.
+      # Only a tag gets this pass; the tag is the version, passed as -Pversion exactly like JitPack does
+      # for a tagged build - not the declared one, which a tag may have outgrown. Through the
+      # environment because a git tag may hold shell metacharacters.
       - name: Build the release jars
         if: github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          ./gradlew desktop:jar android:ciDeploy -Prelease
+          ./gradlew desktop:jar android:ciDeploy -Prelease "-Pversion=$TAG"
           mkdir -p "$GITHUB_WORKSPACE/artifacts/release"
           mv desktop/build/libs/*.jar android/build/libs/*.jar "$GITHUB_WORKSPACE/artifacts/release/"
 

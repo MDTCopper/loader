@@ -1,15 +1,33 @@
 
-// Only -Prelease uses the version in gradle.properties; every other build is "snapshot", so a jar that
-// was never tagged cannot claim a release number.
-def release = project.hasProperty('release')
+// JitPack publishes with -Pversion=<the version it resolves the artifacts under>, so they must carry
+// exactly that string: a tag ("0.2.0") is a release, the snapshot channel, a -SNAPSHOT request and a
+// bare commit are not. Without a version, -Prelease names a release and anything else a snapshot.
+
 // the declared version, read before the ext below takes the buildVersion name over
 def declaredVersion = property('buildVersion')
-def loaderVersion = release ? declaredVersion : 'snapshot'
 
-// The build stamp a snapshot carries, the same one the bridge builds with. Every build without
-// -Prelease calls itself "snapshot", so the version alone cannot say which code is inside; that is the
-// commit it was built from, and only a commit the remote has counts - a local commit, a changed tree or
-// a build with no git is a custom build and says so. The CI passes what it pushed with -PbuildCommit.
+def requested = project.findProperty('version')?.toString()?.trim()
+if (requested == '' || requested == 'unspecified')
+    requested = null
+
+// "snapshot", a -SNAPSHOT request and a bare commit hash all name a snapshot.
+def snapshotRequested = requested == null
+        || requested.equalsIgnoreCase('snapshot')
+        || requested.toLowerCase().endsWith('-snapshot')
+        || requested ==~ /(?i)[0-9a-f]{7,40}/
+
+def release = project.hasProperty('release') || !snapshotRequested
+def loaderVersion = release ? (requested ?: declaredVersion) : (requested ?: 'snapshot')
+
+// A snapshot publishes under its own name but keeps the declared version inside: mod dependency checks
+// parse that number, and a tag that is not a plain number ("v0.2.0") cannot be parsed at all.
+def runtimeVersion = release ? loaderVersion : declaredVersion
+if (!(runtimeVersion ==~ /\d+(\.\d+)*([-+][0-9A-Za-z.\-]+)?/))
+    runtimeVersion = declaredVersion
+
+// A snapshot cannot say by its own version which code is inside, so it carries the commit it was built
+// from. Only a commit the remote has counts - a local commit, a dirty tree or no git is custom, and
+// says so. The CI passes what it pushed with -PbuildCommit.
 def gitQuery = { List<String> args ->
     def out = new ByteArrayOutputStream()
     try {
@@ -50,7 +68,8 @@ if (!release) {
     }
 }
 
-logger.lifecycle("loader ${loaderVersion}" + (custom ? ' (custom)' : commit ? " (${commit})" : ''))
+logger.lifecycle("loader ${loaderVersion} (" + (release ? 'release' : 'snapshot')
+        + (custom ? ', custom' : commit ? ", ${commit}" : '') + ')')
 
 allprojects {
     repositories {
@@ -62,8 +81,8 @@ allprojects {
 
     ext {
         buildVersion = loaderVersion
-        // the declared version: a snapshot stamps it for mod dependency checks, not to display it
-        releaseVersion = declaredVersion
+        // the numeric version stamped into the jar: a release's own, a snapshot's declared one
+        releaseVersion = runtimeVersion
         buildSnapshot = !release
         buildCommit = commit
         buildCustom = custom
