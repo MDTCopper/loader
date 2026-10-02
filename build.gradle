@@ -1,7 +1,8 @@
 
 // JitPack publishes with -Pversion=<the version it resolves the artifacts under>, so they must carry
-// exactly that string: a tag ("0.2.0") is a release, the snapshot channel, a -SNAPSHOT request and a
-// bare commit are not. Without a version, -Prelease names a release and anything else a snapshot.
+// exactly that string: a tag ("0.2.0") is a release, the snapshot channel's tag, a -SNAPSHOT request
+// and the snapshot names JitPack resolves are not. Without a version, -Prelease names a release and
+// anything else a snapshot.
 
 // the declared version, read before the ext below takes the buildVersion name over
 def declaredVersion = property('buildVersion')
@@ -10,11 +11,21 @@ def requested = project.findProperty('version')?.toString()?.trim()
 if (requested == '' || requested == 'unspecified')
     requested = null
 
-// "snapshot", a -SNAPSHOT request and a bare commit hash all name a snapshot.
+// JitPack resolves a snapshot request to the commit it built and names the build after it: a commit
+// request is "<commit>", a branch or -SNAPSHOT request it answered itself is "<ref>-<commit>-<build>",
+// with an empty <ref> for the latter.
+def commitIn = { String value ->
+    if (value ==~ /(?i)[0-9a-f]{7,40}/)
+        return value
+    def resolved = value =~ /(?i)(?:^|-)([0-9a-f]{7,40})-\d+$/
+    return resolved.find() ? resolved.group(1) : null
+}
+def namedCommit = requested == null ? null : commitIn(requested)
+
 def snapshotRequested = requested == null
         || requested.equalsIgnoreCase('snapshot')
         || requested.toLowerCase().endsWith('-snapshot')
-        || requested ==~ /(?i)[0-9a-f]{7,40}/
+        || namedCommit != null
 
 def release = project.hasProperty('release') || !snapshotRequested
 def loaderVersion = release ? (requested ?: declaredVersion) : (requested ?: 'snapshot')
@@ -25,9 +36,6 @@ def runtimeVersion = release ? loaderVersion : declaredVersion
 if (!(runtimeVersion ==~ /\d+(\.\d+)*([-+][0-9A-Za-z.\-]+)?/))
     runtimeVersion = declaredVersion
 
-// A snapshot cannot say by its own version which code is inside, so it carries the commit it was built
-// from. Only a commit the remote has counts - a local commit, a dirty tree or no git is custom, and
-// says so. The CI passes what it pushed with -PbuildCommit.
 def gitQuery = { List<String> args ->
     def out = new ByteArrayOutputStream()
     try {
@@ -44,13 +52,18 @@ def gitQuery = { List<String> args ->
         return null
     }
 }
+
+// A snapshot cannot say by its own version which code is inside, so it carries the commit it was built
+// from. Only a commit the remote has counts - a local commit, a dirty tree or no git is custom, and
+// says so. JitPack names the build after that commit and the CI passes it with -PbuildCommit, so ask a
+// checkout of one's own last: JitPack's has no remote branch that contains what it fetched.
 def commit = ''
 def custom = false
 if (!release) {
-    def passed = project.findProperty('buildCommit')
-    def fromCi = System.getenv('GITHUB_SHA')
-    if (passed != null && !passed.trim().isEmpty()) {
-        commit = passed.trim().take(7)
+    def known = [project.findProperty('buildCommit')?.toString()?.trim(), namedCommit,
+            System.getenv('GIT_COMMIT')?.trim(), System.getenv('GITHUB_SHA')?.trim()].find { it }
+    if (known != null) {
+        commit = known.take(7)
     } else {
         def head = gitQuery(['rev-parse', '--verify', '--short', 'HEAD'])
         if (head != null) {
@@ -60,8 +73,6 @@ if (!release) {
                 commit = head
             else
                 custom = true
-        } else if (fromCi != null && !fromCi.trim().isEmpty()) {
-            commit = fromCi.trim().take(7)
         } else {
             custom = true
         }
