@@ -29,7 +29,7 @@ public abstract class MixinContainer extends Container {
     protected List<String> mixinFlags;
     protected Map<String, byte[]> transformedBytecodes;
 
-    MixinContainer() {
+    public MixinContainer() {
         mixins = new ArrayList<>();
         mixinEngine = null;
         mixinLogEnabled = false;
