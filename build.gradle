@@ -99,6 +99,7 @@ allprojects {
         buildCustom = custom
         asmVersion = property("asmVersion")
         mixinVersion = property("mixinVersion")
+        javaVersionRange = property("javaVersionRange")
         // for core mod
         gameVersion = property("gameVersion")
     }

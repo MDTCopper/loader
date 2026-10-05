@@ -1,7 +1,6 @@
 package copper.loader.mixin;
 
 import copper.loader.func.*;
-import org.spongepowered.asm.mixin.*;
 import java.lang.instrument.*;
 
 public class MixinAgent implements IMixinAgent {

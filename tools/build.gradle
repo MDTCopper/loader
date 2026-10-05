@@ -8,7 +8,7 @@ sourceSets {
 }
 
 dependencies {
-    if (Float.parseFloat(asmVersion) < 6) {
+    if (Float.parseFloat(asmVersion.split("\\.")[0]) < 6) {
         implementation "org.ow2.asm:asm-debug-all:$asmVersion"
     }
 

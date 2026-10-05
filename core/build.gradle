@@ -35,7 +35,10 @@ tasks.register('writeVersion') {
         def props = new Properties()
         def write = true
 
-        def values = [version: stampVersion]
+        def values = [
+                version: stampVersion,
+                javaVersionRange: javaVersionRange
+        ]
         if (stampSnapshot) values.snapshot = 'true'
         if (stampCustom) values.custom = 'true'
         else if (stampCommit) values.commit = stampCommit
