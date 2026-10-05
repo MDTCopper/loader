@@ -6,6 +6,11 @@ import java.security.*;
 import java.util.*;
 import java.util.jar.*;
 
+/**
+ * Instrumentation handed to the framework's hot swap agent: a registered transformer is replaced by
+ * the wrapper of the container, which decides whether the agent may transform a redefined class.
+ * Removal goes through the wrapper, the instance the JVM knows.
+ */
 public class MixinInstrumentation implements Instrumentation {
     private final Instrumentation target;
     private final Func<ClassFileTransformer, ClassFileTransformer> wrapper;

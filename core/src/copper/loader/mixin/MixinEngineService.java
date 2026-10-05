@@ -178,6 +178,11 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
         return MixinEnvironment.CompatibilityLevel.JAVA_17;
     }
 
+    /**
+     * Ceiling Mixin compares a mixin config's compatibility level against: a config raising the level
+     * above it is logged as unsupported. Bumped together with the top of the supported Java range
+     * ({@code javaVersionRange} in gradle.properties), currently 17-27.
+     */
     @Override
     public MixinEnvironment.CompatibilityLevel getMaxCompatibilityLevel() {
         return MixinEnvironment.CompatibilityLevel.JAVA_27;

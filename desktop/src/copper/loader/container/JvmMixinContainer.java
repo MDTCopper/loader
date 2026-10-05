@@ -44,10 +44,20 @@ public class JvmMixinContainer extends MixinContainer {
         return loader;
     }
 
+    /**
+     * Hooks the framework's hot swap agent into the JVM instrumentation for this container.
+     *
+     * @param allowRedefine whether the agent may transform a redefined class of this container;
+     *                      {@code false} re-reads the class and applies this container's mixins instead
+     * @param allowRemixin  whether a reloaded mixin may be re-applied, dropping this container's
+     *                      cached transformed bytecode
+     */
     public void setupAgent(Instrumentation instrumentation, boolean allowRedefine, boolean allowRemixin) {
         if (mixinEngine == null)
             return;
         try {
+            // the agent class lives in the container's isolated classloader, so it is only reachable
+            // through the interface both classloaders share
             IMixinAgent agent = (IMixinAgent) mixinEngine.getClass().getClassLoader()
                     .loadClass("copper.loader.mixin.MixinAgent")
                     .getDeclaredMethod("getInstance")

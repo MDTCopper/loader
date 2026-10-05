@@ -22,10 +22,10 @@ import copper.loader.container.*;
  *   </li>
  *   <li><b>Excluded</b> (delegated to the parent system classloader):
  *     <ul>
- *       <li>{@code copper.loader.mixin.IMixinEngine} and this filter class itself —
- *           these are shared interfaces loaded by the system classloader so that
- *           containers can reference the mixin engine through the {@code IMixinEngine}
- *           interface without reflection.</li>
+ *       <li>{@code copper.loader.mixin.IMixinEngine}, {@code copper.loader.mixin.IMixinAgent}
+ *           and this filter class itself — shared interfaces loaded by the system classloader,
+ *           so a container can hold the mixin engine as {@code IMixinEngine} and the agent it
+ *           loads from the isolated classloader as {@code IMixinAgent}.</li>
  *       <li>{@code copper.loader.*} — all other Copper loader classes. The mixin
  *           engine does not need them, and keeping them in the parent classloader
  *           avoids duplicate class definitions.</li>

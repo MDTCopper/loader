@@ -97,6 +97,12 @@ public class JvmAgent {
         return (JvmMixinContainer) mod.container;
     }
 
+    /**
+     * Serves bytecode for a redefined class that no container wrapper covers: a class of a container
+     * without mixins of its own is re-read from the container, a loader class from disk, so a class
+     * recompiled while debugging replaces what the JVM holds. Containers with mixins keep the bytecode
+     * their wrapper produced.
+     */
     private static class RedefineFilter implements ClassFileTransformer {
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {

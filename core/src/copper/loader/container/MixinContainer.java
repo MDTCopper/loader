@@ -27,6 +27,7 @@ public abstract class MixinContainer extends Container {
     protected IMixinEngine mixinEngine;
     protected boolean mixinLogEnabled;
     protected List<String> mixinFlags;
+    /** Must stay concurrent: the redefine path clears it while class loading reads it on other threads. */
     protected Map<String, byte[]> transformedBytecodes;
 
     public MixinContainer() {
