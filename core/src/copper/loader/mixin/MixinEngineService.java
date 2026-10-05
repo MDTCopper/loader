@@ -180,6 +180,6 @@ public class MixinEngineService extends MixinServiceAbstract implements ITransfo
 
     @Override
     public MixinEnvironment.CompatibilityLevel getMaxCompatibilityLevel() {
-        return MixinEnvironment.CompatibilityLevel.JAVA_25;
+        return MixinEnvironment.CompatibilityLevel.JAVA_27;
     }
 }
